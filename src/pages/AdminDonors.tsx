@@ -1,0 +1,278 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Plus, Edit, Trash2, Search } from "lucide-react";
+import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export default function AdminDonors() {
+  const [donors, setDonors] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingDonor, setEditingDonor] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    card_number: "",
+    nic_or_id: "",
+  });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadDonors();
+  }, []);
+
+  const loadDonors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("donors")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDonors(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingDonor) {
+        const { error } = await supabase
+          .from("donors")
+          .update(formData)
+          .eq("id", editingDonor.id);
+
+        if (error) throw error;
+        toast({ title: "Success", description: "Donor updated successfully" });
+      } else {
+        const { error } = await supabase
+          .from("donors")
+          .insert([formData]);
+
+        if (error) throw error;
+        toast({ title: "Success", description: "Donor added successfully" });
+      }
+
+      setDialogOpen(false);
+      resetForm();
+      loadDonors();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (donor: any) => {
+    setEditingDonor(donor);
+    setFormData({
+      name: donor.name,
+      phone: donor.phone || "",
+      address: donor.address || "",
+      card_number: donor.card_number,
+      nic_or_id: donor.nic_or_id || "",
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this donor?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("donors")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      toast({ title: "Success", description: "Donor deleted successfully" });
+      loadDonors();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      phone: "",
+      address: "",
+      card_number: "",
+      nic_or_id: "",
+    });
+    setEditingDonor(null);
+  };
+
+  const filteredDonors = donors.filter(
+    (donor) =>
+      donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      donor.card_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-muted/30 to-background">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/admin">
+              <Button variant="outline" size="icon">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold">Manage Donors</h1>
+          </div>
+
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Donor
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingDonor ? "Edit Donor" : "Add New Donor"}</DialogTitle>
+                <DialogDescription>Fill in the donor information below</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="card_number">Card Number *</Label>
+                  <Input
+                    id="card_number"
+                    value={formData.card_number}
+                    onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
+                    placeholder="CARD-12345"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+94-77-xxxxxxx"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nic_or_id">NIC / ID</Label>
+                  <Input
+                    id="nic_or_id"
+                    value={formData.nic_or_id}
+                    onChange={(e) => setFormData({ ...formData, nic_or_id: e.target.value })}
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  {editingDonor ? "Update Donor" : "Add Donor"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Card className="mb-6 shadow-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or card number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-0 focus-visible:ring-0"
+              />
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>All Donors ({filteredDonors.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredDonors.length === 0 ? (
+              <p className="text-center text-muted-foreground">No donors found</p>
+            ) : (
+              <div className="space-y-3">
+                {filteredDonors.map((donor) => (
+                  <div
+                    key={donor.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-4"
+                  >
+                    <div>
+                      <p className="font-medium">{donor.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {donor.card_number}
+                        {donor.phone && ` • ${donor.phone}`}
+                      </p>
+                      {donor.address && (
+                        <p className="text-xs text-muted-foreground">{donor.address}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(donor)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDelete(donor.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
