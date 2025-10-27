@@ -35,14 +35,20 @@ export default function AdminAuth() {
         description: error.message,
         variant: "destructive",
       });
+      setLoading(false);
     } else {
       toast({
         title: "Welcome",
         description: "You have successfully logged in",
       });
+      // Wait a moment for admin status to be checked, then navigate
+      setTimeout(() => {
+        if (isAdmin) {
+          navigate("/admin");
+        }
+        setLoading(false);
+      }, 500);
     }
-
-    setLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
