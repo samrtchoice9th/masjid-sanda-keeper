@@ -1,41 +1,87 @@
-import { useState } from "react";
-import { Search, FileText, Phone, CreditCard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Phone, CreditCard, CheckCircle, XCircle } from "lucide-react";
 import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PublicLookup() {
-  const [cardNumber, setCardNumber] = useState("");
+  const [selectedRoot, setSelectedRoot] = useState("");
+  const [selectedCardNumber, setSelectedCardNumber] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [donor, setDonor] = useState<any>(null);
-  const [donations, setDonations] = useState<any[]>([]);
+  const [allDonors, setAllDonors] = useState<any[]>([]);
+  const [filteredDonors, setFilteredDonors] = useState<any[]>([]);
+  const [paidMonths, setPaidMonths] = useState<number[]>([]);
   const [notFound, setNotFound] = useState(false);
   const { toast } = useToast();
 
-  const handleLookup = async () => {
-    if (!cardNumber.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a card number",
-        variant: "destructive",
-      });
-      return;
-    }
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
+  // Fetch all donors on mount
+  useEffect(() => {
+    fetchAllDonors();
+  }, []);
+
+  const fetchAllDonors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("donors")
+        .select("*")
+        .order("card_number");
+
+      if (error) throw error;
+      setAllDonors(data || []);
+    } catch (error: any) {
+      console.error("Error fetching donors:", error);
+    }
+  };
+
+  // Filter donors by root
+  useEffect(() => {
+    if (selectedRoot) {
+      const filtered = allDonors.filter(d => d.root_no === selectedRoot);
+      setFilteredDonors(filtered);
+    } else {
+      setFilteredDonors([]);
+    }
+    setSelectedCardNumber("");
+    setDonor(null);
+    setPaidMonths([]);
+  }, [selectedRoot, allDonors]);
+
+  // Fetch donor details when card is selected
+  useEffect(() => {
+    if (selectedCardNumber) {
+      handleCardSelection();
+    } else {
+      setDonor(null);
+      setPaidMonths([]);
+    }
+  }, [selectedCardNumber]);
+
+  // Fetch paid months when year is selected
+  useEffect(() => {
+    if (selectedYear && donor) {
+      fetchPaidMonths();
+    } else {
+      setPaidMonths([]);
+    }
+  }, [selectedYear, donor]);
+
+  const handleCardSelection = async () => {
     setLoading(true);
     setNotFound(false);
-    setDonor(null);
-    setDonations([]);
 
     try {
-      // Fetch donor
       const { data: donorData, error: donorError } = await supabase
         .from("donors")
         .select("*")
-        .eq("card_number", cardNumber.trim())
+        .eq("card_number", selectedCardNumber)
         .maybeSingle();
 
       if (donorError) throw donorError;
@@ -46,22 +92,11 @@ export default function PublicLookup() {
       }
 
       setDonor(donorData);
-
-      // Fetch donations
-      const { data: donationsData, error: donationsError } = await supabase
-        .from("donations")
-        .select("*")
-        .eq("donor_id", donorData.id)
-        .order("date", { ascending: false });
-
-      if (donationsError) throw donationsError;
-
-      setDonations(donationsData || []);
     } catch (error: any) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching donor:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to fetch donation data",
+        description: error.message || "Failed to fetch donor data",
         variant: "destructive",
       });
     } finally {
@@ -69,7 +104,36 @@ export default function PublicLookup() {
     }
   };
 
-  const totalAmount = donations.reduce((sum, d) => sum + Number(d.amount), 0);
+  const fetchPaidMonths = async () => {
+    if (!donor || !selectedYear) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("donations")
+        .select("months_paid")
+        .eq("donor_id", donor.id)
+        .eq("year", parseInt(selectedYear))
+        .eq("method", "sanda");
+
+      if (error) throw error;
+
+      // Flatten all paid months
+      const allPaidMonths: number[] = [];
+      data?.forEach(donation => {
+        if (donation.months_paid) {
+          allPaidMonths.push(...donation.months_paid);
+        }
+      });
+
+      setPaidMonths([...new Set(allPaidMonths)].sort((a, b) => a - b));
+    } catch (error: any) {
+      console.error("Error fetching paid months:", error);
+    }
+  };
+
+  const unpaidMonths = Array.from({ length: 12 }, (_, i) => i + 1).filter(
+    month => !paidMonths.includes(month)
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted/30 to-background">
@@ -78,32 +142,47 @@ export default function PublicLookup() {
       <main className="container mx-auto px-4 py-12">
         <div className="mx-auto max-w-2xl">
           <div className="mb-8 text-center">
-            <h2 className="mb-2 text-3xl font-bold text-foreground">Check Your Donations</h2>
-            <p className="text-muted-foreground">Enter your donation card number to view your contribution history</p>
+            <h2 className="mb-2 text-3xl font-bold text-foreground">Check Your Sanda</h2>
+            <p className="text-muted-foreground">Select your root and card number to view your payment history</p>
           </div>
 
           <Card className="mb-8 shadow-card">
             <CardHeader>
-              <CardTitle>Lookup Donation Record</CardTitle>
-              <CardDescription>Enter your unique card number below</CardDescription>
+              <CardTitle>Lookup Sanda Record</CardTitle>
+              <CardDescription>Select your root number and card number below</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter Card Number (e.g., CARD-12345)"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLookup()}
-                  className="flex-1"
-                />
-                <Button onClick={handleLookup} disabled={loading}>
-                  {loading ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                </Button>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Root No.</label>
+                <Select value={selectedRoot} onValueChange={setSelectedRoot}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Root No." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(root => (
+                      <SelectItem key={root} value={root}>{root}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {selectedRoot && (
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Card No.</label>
+                  <Select value={selectedCardNumber} onValueChange={setSelectedCardNumber}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Card No." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredDonors.map(donor => (
+                        <SelectItem key={donor.id} value={donor.card_number}>
+                          {donor.card_number} - {donor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -146,42 +225,98 @@ export default function PublicLookup() {
                         </div>
                       </div>
                     )}
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Monthly Sanda Amount</p>
+                        <p className="font-medium">Rs. {donor.monthly_sanda_amount ? Number(donor.monthly_sanda_amount).toLocaleString() : 'N/A'}</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-card">
-                <CardHeader className="bg-gradient-to-r from-secondary/20 to-secondary/5">
-                  <CardTitle>Donation Summary</CardTitle>
-                  <CardDescription>
-                    Total: Rs. {totalAmount.toLocaleString()} • {donations.length} donation(s)
-                  </CardDescription>
+              <Card className="mb-6 shadow-card">
+                <CardHeader>
+                  <CardTitle>Select Year</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6">
-                  {donations.length === 0 ? (
-                    <p className="text-center text-muted-foreground">No donations recorded yet</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {donations.map((donation) => (
-                        <div
-                          key={donation.id}
-                          className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4"
-                        >
-                          <div>
-                            <p className="font-medium">Rs. {Number(donation.amount).toLocaleString()}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(donation.date).toLocaleDateString()} • {donation.method}
-                            </p>
-                            {donation.note && (
-                              <p className="mt-1 text-xs text-muted-foreground">{donation.note}</p>
-                            )}
-                          </div>
-                        </div>
+                <CardContent>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map(year => (
+                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                       ))}
-                    </div>
-                  )}
+                    </SelectContent>
+                  </Select>
                 </CardContent>
               </Card>
+
+              {selectedYear && (
+                <>
+                  <Card className="mb-6 shadow-card">
+                    <CardHeader className="bg-gradient-to-r from-green-500/10 to-green-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        Paid Months ({selectedYear})
+                      </CardTitle>
+                      <CardDescription>
+                        {paidMonths.length} month(s) paid
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      {paidMonths.length === 0 ? (
+                        <p className="text-center text-muted-foreground">No payments recorded for this year</p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {paidMonths.map(month => (
+                            <div
+                              key={month}
+                              className="rounded-lg border border-green-200 bg-green-50 p-3 text-center dark:border-green-900 dark:bg-green-950"
+                            >
+                              <p className="font-medium text-green-700 dark:text-green-300">
+                                {monthNames[month - 1]}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="shadow-card">
+                    <CardHeader className="bg-gradient-to-r from-red-500/10 to-red-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <XCircle className="h-5 w-5 text-red-600" />
+                        Unpaid Months ({selectedYear})
+                      </CardTitle>
+                      <CardDescription>
+                        {unpaidMonths.length} month(s) unpaid
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      {unpaidMonths.length === 0 ? (
+                        <p className="text-center text-green-600">All months paid!</p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {unpaidMonths.map(month => (
+                            <div
+                              key={month}
+                              className="rounded-lg border border-red-200 bg-red-50 p-3 text-center dark:border-red-900 dark:bg-red-950"
+                            >
+                              <p className="font-medium text-red-700 dark:text-red-300">
+                                {monthNames[month - 1]}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </>
           )}
         </div>
