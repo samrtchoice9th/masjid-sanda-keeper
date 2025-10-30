@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,9 +18,11 @@ export default function AdminDonors() {
   const [editingDonor, setEditingDonor] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
-    address: "",
+    root_no: "",
     card_number: "",
+    phone: "",
+    monthly_sanda_amount: "",
+    address: "",
     nic_or_id: "",
   });
   const { toast } = useToast();
@@ -50,10 +53,15 @@ export default function AdminDonors() {
     e.preventDefault();
 
     try {
+      const submitData = {
+        ...formData,
+        monthly_sanda_amount: formData.monthly_sanda_amount ? parseFloat(formData.monthly_sanda_amount) : null,
+      };
+
       if (editingDonor) {
         const { error } = await supabase
           .from("donors")
-          .update(formData)
+          .update(submitData)
           .eq("id", editingDonor.id);
 
         if (error) throw error;
@@ -61,7 +69,7 @@ export default function AdminDonors() {
       } else {
         const { error } = await supabase
           .from("donors")
-          .insert([formData]);
+          .insert([submitData]);
 
         if (error) throw error;
         toast({ title: "Success", description: "Donor added successfully" });
@@ -83,9 +91,11 @@ export default function AdminDonors() {
     setEditingDonor(donor);
     setFormData({
       name: donor.name,
-      phone: donor.phone || "",
-      address: donor.address || "",
+      root_no: donor.root_no || "",
       card_number: donor.card_number,
+      phone: donor.phone || "",
+      monthly_sanda_amount: donor.monthly_sanda_amount?.toString() || "",
+      address: donor.address || "",
       nic_or_id: donor.nic_or_id || "",
     });
     setDialogOpen(true);
@@ -115,9 +125,11 @@ export default function AdminDonors() {
   const resetForm = () => {
     setFormData({
       name: "",
-      phone: "",
-      address: "",
+      root_no: "",
       card_number: "",
+      phone: "",
+      monthly_sanda_amount: "",
+      address: "",
       nic_or_id: "",
     });
     setEditingDonor(null);
@@ -170,7 +182,27 @@ export default function AdminDonors() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="card_number">Card Number *</Label>
+                  <Label htmlFor="root_no">Root No. *</Label>
+                  <Select
+                    value={formData.root_no}
+                    onValueChange={(value) => setFormData({ ...formData, root_no: value })}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Root No." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Root-1">Root-1</SelectItem>
+                      <SelectItem value="Root-2">Root-2</SelectItem>
+                      <SelectItem value="Root-3">Root-3</SelectItem>
+                      <SelectItem value="Root-4">Root-4</SelectItem>
+                      <SelectItem value="Root-5">Root-5</SelectItem>
+                      <SelectItem value="Root-6">Root-6</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="card_number">Card No. *</Label>
                   <Input
                     id="card_number"
                     value={formData.card_number}
@@ -186,6 +218,18 @@ export default function AdminDonors() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+94-77-xxxxxxx"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthly_sanda_amount">Monthly Sanda Amount (Rs.) *</Label>
+                  <Input
+                    id="monthly_sanda_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.monthly_sanda_amount}
+                    onChange={(e) => setFormData({ ...formData, monthly_sanda_amount: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -243,9 +287,15 @@ export default function AdminDonors() {
                     <div>
                       <p className="font-medium">{donor.name}</p>
                       <p className="text-sm text-muted-foreground">
+                        {donor.root_no && `${donor.root_no} • `}
                         {donor.card_number}
                         {donor.phone && ` • ${donor.phone}`}
                       </p>
+                      {donor.monthly_sanda_amount && (
+                        <p className="text-xs text-primary font-semibold">
+                          Monthly Sanda: Rs. {Number(donor.monthly_sanda_amount).toLocaleString()}
+                        </p>
+                      )}
                       {donor.address && (
                         <p className="text-xs text-muted-foreground">{donor.address}</p>
                       )}

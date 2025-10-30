@@ -22,8 +22,10 @@ export type Database = {
           donor_id: string
           id: string
           method: string
+          months_paid: number[] | null
           note: string | null
           reference: string | null
+          year: number | null
         }
         Insert: {
           amount: number
@@ -32,8 +34,10 @@ export type Database = {
           donor_id: string
           id?: string
           method: string
+          months_paid?: number[] | null
           note?: string | null
           reference?: string | null
+          year?: number | null
         }
         Update: {
           amount?: number
@@ -42,8 +46,10 @@ export type Database = {
           donor_id?: string
           id?: string
           method?: string
+          months_paid?: number[] | null
           note?: string | null
           reference?: string | null
+          year?: number | null
         }
         Relationships: [
           {
@@ -61,27 +67,33 @@ export type Database = {
           card_number: string
           created_at: string | null
           id: string
+          monthly_sanda_amount: number | null
           name: string
           nic_or_id: string | null
           phone: string | null
+          root_no: string | null
         }
         Insert: {
           address?: string | null
           card_number: string
           created_at?: string | null
           id?: string
+          monthly_sanda_amount?: number | null
           name: string
           nic_or_id?: string | null
           phone?: string | null
+          root_no?: string | null
         }
         Update: {
           address?: string | null
           card_number?: string
           created_at?: string | null
           id?: string
+          monthly_sanda_amount?: number | null
           name?: string
           nic_or_id?: string | null
           phone?: string | null
+          root_no?: string | null
         }
         Relationships: []
       }
