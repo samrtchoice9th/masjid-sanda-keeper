@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Edit, Trash2, Search } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Search, Send } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +25,10 @@ export default function AdminDonors() {
     monthly_sanda_amount: "",
     address: "",
     nic_or_id: "",
+    whatsapp_no: "",
+    status: "active",
   });
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -97,6 +101,8 @@ export default function AdminDonors() {
       monthly_sanda_amount: donor.monthly_sanda_amount?.toString() || "",
       address: donor.address || "",
       nic_or_id: donor.nic_or_id || "",
+      whatsapp_no: donor.whatsapp_no || "",
+      status: donor.status || "active",
     });
     setDialogOpen(true);
   };
@@ -131,8 +137,34 @@ export default function AdminDonors() {
       monthly_sanda_amount: "",
       address: "",
       nic_or_id: "",
+      whatsapp_no: "",
+      status: "active",
     });
     setEditingDonor(null);
+  };
+
+  const handleSendReminder = async (donorId: string, donorName: string) => {
+    setSendingReminder(donorId);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-sanda-reminders', {
+        body: { donorId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reminder Sent",
+        description: `WhatsApp reminder sent to ${donorName}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reminder",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingReminder(null);
+    }
   };
 
   const filteredDonors = donors.filter(
@@ -248,6 +280,30 @@ export default function AdminDonors() {
                     onChange={(e) => setFormData({ ...formData, nic_or_id: e.target.value })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp_no">WhatsApp Number (with country code)</Label>
+                  <Input
+                    id="whatsapp_no"
+                    placeholder="+94771234567"
+                    value={formData.whatsapp_no}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_no: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full">
                   {editingDonor ? "Update Donor" : "Add Donor"}
                 </Button>
@@ -299,19 +355,36 @@ export default function AdminDonors() {
                       {donor.address && (
                         <p className="text-xs text-muted-foreground">{donor.address}</p>
                       )}
+                      {donor.whatsapp_no && (
+                        <p className="text-xs text-muted-foreground">WhatsApp: {donor.whatsapp_no}</p>
+                      )}
+                      <Badge variant={donor.status === "active" ? "default" : "secondary"} className="mt-1">
+                        {donor.status || "active"}
+                      </Badge>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => handleEdit(donor)}
+                        title="Edit Donor"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
+                        onClick={() => handleSendReminder(donor.id, donor.name)}
+                        disabled={!donor.whatsapp_no || sendingReminder === donor.id}
+                        title="Send WhatsApp Reminder"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
                         onClick={() => handleDelete(donor.id)}
+                        title="Delete Donor"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

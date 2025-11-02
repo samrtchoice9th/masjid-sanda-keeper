@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, DollarSign, TrendingUp, LogOut } from "lucide-react";
+import { Users, DollarSign, TrendingUp, LogOut, Bell } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,6 +135,18 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle>Manage Donations</CardTitle>
                 <CardDescription>Record and track all donations</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link to="/admin/reminder-logs">
+            <Card className="cursor-pointer shadow-card transition-all hover:shadow-elegant">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Reminder Logs
+                </CardTitle>
+                <CardDescription>View WhatsApp reminder history</CardDescription>
               </CardHeader>
             </Card>
           </Link>

@@ -10,6 +10,7 @@ import AdminAuth from "./pages/AdminAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminDonors from "./pages/AdminDonors";
 import AdminDonations from "./pages/AdminDonations";
+import AdminReminderLogs from "./pages/AdminReminderLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminDonations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reminder-logs"
+              element={
+                <ProtectedRoute>
+                  <AdminReminderLogs />
                 </ProtectedRoute>
               }
             />
