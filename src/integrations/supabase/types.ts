@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       donations: {
         Row: {
           amount: number
@@ -72,6 +96,8 @@ export type Database = {
           nic_or_id: string | null
           phone: string | null
           root_no: string | null
+          status: string | null
+          whatsapp_no: string | null
         }
         Insert: {
           address?: string | null
@@ -83,6 +109,8 @@ export type Database = {
           nic_or_id?: string | null
           phone?: string | null
           root_no?: string | null
+          status?: string | null
+          whatsapp_no?: string | null
         }
         Update: {
           address?: string | null
@@ -94,8 +122,54 @@ export type Database = {
           nic_or_id?: string | null
           phone?: string | null
           root_no?: string | null
+          status?: string | null
+          whatsapp_no?: string | null
         }
         Relationships: []
+      }
+      reminder_logs: {
+        Row: {
+          created_at: string | null
+          donor_id: string
+          error_message: string | null
+          id: string
+          message: string | null
+          month: number
+          sent_at: string
+          status: string
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          donor_id: string
+          error_message?: string | null
+          id?: string
+          message?: string | null
+          month: number
+          sent_at?: string
+          status: string
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          donor_id?: string
+          error_message?: string | null
+          id?: string
+          message?: string | null
+          month?: number
+          sent_at?: string
+          status?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_logs_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "donors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
