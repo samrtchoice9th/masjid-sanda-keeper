@@ -139,21 +139,21 @@ export default function PublicLookup() {
     <div className="min-h-screen bg-gradient-to-br from-muted/30 to-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-6 sm:py-12">
         <div className="mx-auto max-w-2xl">
-          <div className="mb-8 text-center">
-            <h2 className="mb-2 text-3xl font-bold text-foreground">Check Your Sanda</h2>
-            <p className="text-muted-foreground">Select your root and card number to view your payment history</p>
+          <div className="mb-6 sm:mb-8 text-center">
+            <h2 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">Check Your Sanda</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Select your root and card number to view your payment history</p>
           </div>
 
-          <Card className="mb-8 shadow-card">
+          <Card className="mb-6 sm:mb-8 shadow-card">
             <CardHeader>
-              <CardTitle>Lookup Sanda Record</CardTitle>
-              <CardDescription>Select your root number and card number below</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Lookup Sanda Record</CardTitle>
+              <CardDescription className="text-sm">Select your root number and card number below</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 sm:space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium">Root No.</label>
+                <label className="mb-2 block text-sm sm:text-base font-medium">Root No.</label>
                 <Select value={selectedRoot} onValueChange={setSelectedRoot}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Root No." />
@@ -168,7 +168,7 @@ export default function PublicLookup() {
 
               {selectedRoot && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Card No.</label>
+                  <label className="mb-2 block text-sm sm:text-base font-medium">Card No.</label>
                   <Select value={selectedCardNumber} onValueChange={setSelectedCardNumber}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Card No." />
@@ -196,49 +196,49 @@ export default function PublicLookup() {
 
           {donor && (
             <>
-              <Card className="mb-6 shadow-card">
+              <Card className="mb-4 sm:mb-6 shadow-card">
                 <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-                  <CardTitle>Donor Information</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">Donor Information</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Name</p>
-                        <p className="font-medium">{donor.name}</p>
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground">Name</p>
+                        <p className="font-medium text-sm sm:text-base break-words">{donor.name}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Card Number</p>
-                        <p className="font-medium">{donor.card_number}</p>
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground">Card Number</p>
+                        <p className="font-medium text-sm sm:text-base break-words">{donor.card_number}</p>
                       </div>
                     </div>
                     {donor.phone && (
-                      <div className="flex items-center gap-3">
-                        <Phone className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium">{donor.phone}</p>
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium text-sm sm:text-base break-words">{donor.phone}</p>
                         </div>
                       </div>
                     )}
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Monthly Sanda Amount</p>
-                        <p className="font-medium">Rs. {donor.monthly_sanda_amount ? Number(donor.monthly_sanda_amount).toLocaleString() : 'N/A'}</p>
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground">Monthly Sanda Amount</p>
+                        <p className="font-medium text-sm sm:text-base break-words">Rs. {donor.monthly_sanda_amount ? Number(donor.monthly_sanda_amount).toLocaleString() : 'N/A'}</p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="mb-6 shadow-card">
+              <Card className="mb-4 sm:mb-6 shadow-card">
                 <CardHeader>
-                  <CardTitle>Select Year</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">Select Year</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -256,27 +256,27 @@ export default function PublicLookup() {
 
               {selectedYear && (
                 <>
-                  <Card className="mb-6 shadow-card">
+                  <Card className="mb-4 sm:mb-6 shadow-card">
                     <CardHeader className="bg-gradient-to-r from-green-500/10 to-green-500/5">
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        Paid Months ({selectedYear})
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
+                        <span>Paid Months ({selectedYear})</span>
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-xs sm:text-sm">
                         {paidMonths.length} month(s) paid
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-4 sm:pt-6">
                       {paidMonths.length === 0 ? (
-                        <p className="text-center text-muted-foreground">No payments recorded for this year</p>
+                        <p className="text-center text-sm text-muted-foreground">No payments recorded for this year</p>
                       ) : (
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                           {paidMonths.map(month => (
                             <div
                               key={month}
-                              className="rounded-lg border border-green-200 bg-green-50 p-3 text-center dark:border-green-900 dark:bg-green-950"
+                              className="rounded-lg border border-green-200 bg-green-50 p-2 sm:p-3 text-center dark:border-green-900 dark:bg-green-950 touch-manipulation min-h-[44px] flex items-center justify-center"
                             >
-                              <p className="font-medium text-green-700 dark:text-green-300">
+                              <p className="font-medium text-sm sm:text-base text-green-700 dark:text-green-300">
                                 {monthNames[month - 1]}
                               </p>
                             </div>
@@ -288,25 +288,25 @@ export default function PublicLookup() {
 
                   <Card className="shadow-card">
                     <CardHeader className="bg-gradient-to-r from-red-500/10 to-red-500/5">
-                      <CardTitle className="flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-600" />
-                        Unpaid Months ({selectedYear})
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0" />
+                        <span>Unpaid Months ({selectedYear})</span>
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-xs sm:text-sm">
                         {unpaidMonths.length} month(s) unpaid
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-4 sm:pt-6">
                       {unpaidMonths.length === 0 ? (
-                        <p className="text-center text-green-600">All months paid!</p>
+                        <p className="text-center text-sm sm:text-base text-green-600">All months paid!</p>
                       ) : (
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                           {unpaidMonths.map(month => (
                             <div
                               key={month}
-                              className="rounded-lg border border-red-200 bg-red-50 p-3 text-center dark:border-red-900 dark:bg-red-950"
+                              className="rounded-lg border border-red-200 bg-red-50 p-2 sm:p-3 text-center dark:border-red-900 dark:bg-red-950 touch-manipulation min-h-[44px] flex items-center justify-center"
                             >
-                              <p className="font-medium text-red-700 dark:text-red-300">
+                              <p className="font-medium text-sm sm:text-base text-red-700 dark:text-red-300">
                                 {monthNames[month - 1]}
                               </p>
                             </div>
