@@ -84,43 +84,61 @@ Deno.serve(async (req) => {
 
     // Process each donor
     for (const donor of donors as Donor[]) {
+      // Declare paidMonths outside try block for catch block access
+      let paidMonths = new Set<number>()
+      
       try {
-        // Check if already paid for current month
+        // Get all payments for the current year
         const { data: payments } = await supabase
           .from('donations')
           .select('months_paid, year')
           .eq('donor_id', donor.id)
           .eq('year', currentYear)
 
-        let hasPaid = false
+        // Determine which months have been paid
         if (payments && payments.length > 0) {
           for (const payment of payments) {
-            if (payment.months_paid && payment.months_paid.includes(currentMonth)) {
-              hasPaid = true
-              break
+            if (payment.months_paid) {
+              payment.months_paid.forEach((month: number) => paidMonths.add(month))
             }
           }
         }
 
-        if (hasPaid) {
-          console.log(`Skipping ${donor.name} - already paid for ${currentMonth}/${currentYear}`)
+        // Calculate unpaid months (from January to current month)
+        const unpaidMonths: number[] = []
+        for (let month = 1; month <= currentMonth; month++) {
+          if (!paidMonths.has(month)) {
+            unpaidMonths.push(month)
+          }
+        }
+
+        // Skip if all months are paid
+        if (unpaidMonths.length === 0) {
+          console.log(`Skipping ${donor.name} - all months paid for ${currentYear}`)
           results.skipped++
           continue
         }
+
+        // Calculate total unpaid amount
+        const totalUnpaid = donor.monthly_sanda_amount * unpaidMonths.length
 
         // Prepare WhatsApp message
         const monthNames = [
           'January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December'
         ]
-        const monthName = monthNames[currentMonth - 1]
+        
+        const unpaidMonthNames = unpaidMonths.map(m => monthNames[m - 1]).join(', ')
 
         const message = `அஸ்ஸலாமு அலைக்கும் ${donor.name},
 
-இது உங்கள் ${monthName} மாத சந்தா (sanda) தொகையை வழங்க நினைவூட்டும் ஒரு நட்பு செய்தி.
-தயவுசெய்து உங்களது வழக்கமான முறையில் பணம் செலுத்தவும்.
+இது உங்கள் சந்தா (sanda) செலுத்தாத மாதங்களுக்கான நினைவூட்டல்.
 
+Unpaid Months: ${unpaidMonthNames}
 Monthly Amount: Rs. ${donor.monthly_sanda_amount}
+Total Due: Rs. ${totalUnpaid}
+
+தயவுசெய்து உங்களது வழக்கமான முறையில் பணம் செலுத்தவும்.
 
 ஜஸாகல்லாஹு கைர்!
 — Masjid Donation Team`
@@ -148,16 +166,19 @@ Monthly Amount: Rs. ${donor.monthly_sanda_amount}
         const logStatus = twilioResponse.ok ? 'success' : 'failed'
         const errorMessage = twilioResponse.ok ? null : JSON.stringify(twilioResult)
 
+        // Log for each unpaid month
+        const reminderLogs = unpaidMonths.map(month => ({
+          donor_id: donor.id,
+          month: month,
+          year: currentYear,
+          status: logStatus,
+          message: message,
+          error_message: errorMessage
+        }))
+
         await supabase
           .from('reminder_logs')
-          .insert({
-            donor_id: donor.id,
-            month: currentMonth,
-            year: currentYear,
-            status: logStatus,
-            message: message,
-            error_message: errorMessage
-          })
+          .insert(reminderLogs)
 
         if (twilioResponse.ok) {
           console.log(`Successfully sent reminder to ${donor.name}`)
@@ -174,17 +195,26 @@ Monthly Amount: Rs. ${donor.monthly_sanda_amount}
         results.failed++
         results.errors.push(`${donor.name}: ${errorMessage}`)
         
-        // Log the failed attempt
-        await supabase
-          .from('reminder_logs')
-          .insert({
-            donor_id: donor.id,
-            month: currentMonth,
-            year: currentYear,
-            status: 'failed',
-            message: '',
-            error_message: errorMessage
-          })
+        // Log the failed attempt for all unpaid months
+        const failedLogs = []
+        for (let month = 1; month <= currentMonth; month++) {
+          if (!paidMonths.has(month)) {
+            failedLogs.push({
+              donor_id: donor.id,
+              month: month,
+              year: currentYear,
+              status: 'failed',
+              message: '',
+              error_message: errorMessage
+            })
+          }
+        }
+        
+        if (failedLogs.length > 0) {
+          await supabase
+            .from('reminder_logs')
+            .insert(failedLogs)
+        }
       }
     }
 
