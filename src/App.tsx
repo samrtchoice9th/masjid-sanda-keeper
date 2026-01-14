@@ -4,13 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import PublicLookup from "./pages/PublicLookup";
-import AdminAuth from "./pages/AdminAuth";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminDonors from "./pages/AdminDonors";
-import AdminDonations from "./pages/AdminDonations";
-import AdminReminderLogs from "./pages/AdminReminderLogs";
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,41 +17,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<PublicLookup />} />
-            <Route path="/admin/auth" element={<AdminAuth />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/donors"
-              element={
-                <ProtectedRoute>
-                  <AdminDonors />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/donations"
-              element={
-                <ProtectedRoute>
-                  <AdminDonations />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/reminder-logs"
-              element={
-                <ProtectedRoute>
-                  <AdminReminderLogs />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/" element={<Home />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
