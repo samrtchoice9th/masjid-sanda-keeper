@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.08a7ce71529546609ad7d18f9e431cda',
+  appId: 'com.ahsanmasjid.sandakeeper',
   appName: 'masjid-sanda-keeper',
   webDir: 'dist',
   server: {
