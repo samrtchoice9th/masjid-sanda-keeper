@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -362,27 +362,25 @@ export default function Home() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="mb-2 block text-sm font-medium">Root No.</label>
-                    <Select value={selectedRoot} onValueChange={setSelectedRoot}>
-                      <SelectTrigger><SelectValue placeholder="Select Root No." /></SelectTrigger>
-                      <SelectContent>
-                        {["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(root => (
-                          <SelectItem key={root} value={root}>{root}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(root => ({ value: root, label: root }))}
+                      value={selectedRoot}
+                      onValueChange={setSelectedRoot}
+                      placeholder="Select Root No."
+                      searchPlaceholder="Search root..."
+                    />
                   </div>
 
                   {selectedRoot && (
                     <div>
                       <label className="mb-2 block text-sm font-medium">Card No.</label>
-                      <Select value={selectedCardNumber} onValueChange={setSelectedCardNumber}>
-                        <SelectTrigger><SelectValue placeholder="Select Card No." /></SelectTrigger>
-                        <SelectContent>
-                          {filteredDonors.map(d => (
-                            <SelectItem key={d.id} value={d.card_number}>{d.card_number} - {d.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        options={filteredDonors.map(d => ({ value: d.card_number, label: `${d.card_number} - ${d.name}` }))}
+                        value={selectedCardNumber}
+                        onValueChange={setSelectedCardNumber}
+                        placeholder="Select Card No."
+                        searchPlaceholder="Search card or name..."
+                      />
                     </div>
                   )}
                 </CardContent>
@@ -429,10 +427,13 @@ export default function Home() {
                   <Card className="mb-4 shadow-card">
                     <CardHeader><CardTitle className="text-lg">Select Year</CardTitle></CardHeader>
                     <CardContent>
-                      <Select value={selectedYear} onValueChange={setSelectedYear}>
-                        <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
-                        <SelectContent>{years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        options={years.map(y => ({ value: y.toString(), label: y.toString() }))}
+                        value={selectedYear}
+                        onValueChange={setSelectedYear}
+                        placeholder="Select Year"
+                        searchPlaceholder="Search year..."
+                      />
                     </CardContent>
                   </Card>
 
@@ -616,10 +617,13 @@ export default function Home() {
                             <div className="space-y-2"><Label htmlFor="name">Name *</Label><Input id="name" value={donorFormData.name} onChange={e => setDonorFormData({ ...donorFormData, name: e.target.value })} required /></div>
                             <div className="space-y-2">
                               <Label htmlFor="root_no">Root No. *</Label>
-                              <Select value={donorFormData.root_no} onValueChange={v => setDonorFormData({ ...donorFormData, root_no: v })}>
-                                <SelectTrigger><SelectValue placeholder="Select Root No." /></SelectTrigger>
-                                <SelectContent>{["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                              </Select>
+                              <SearchableSelect
+                                options={["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(r => ({ value: r, label: r }))}
+                                value={donorFormData.root_no}
+                                onValueChange={v => setDonorFormData({ ...donorFormData, root_no: v })}
+                                placeholder="Select Root No."
+                                searchPlaceholder="Search root..."
+                              />
                             </div>
                             <div className="space-y-2"><Label htmlFor="card_number">Card No. *</Label><Input id="card_number" value={donorFormData.card_number} onChange={e => setDonorFormData({ ...donorFormData, card_number: e.target.value })} placeholder="CARD-12345" required /></div>
                             <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" value={donorFormData.phone} onChange={e => setDonorFormData({ ...donorFormData, phone: e.target.value })} placeholder="+94-77-xxxxxxx" /></div>
@@ -628,10 +632,13 @@ export default function Home() {
                             <div className="space-y-2"><Label htmlFor="nic_or_id">NIC / ID</Label><Input id="nic_or_id" value={donorFormData.nic_or_id} onChange={e => setDonorFormData({ ...donorFormData, nic_or_id: e.target.value })} /></div>
                             <div className="space-y-2">
                               <Label htmlFor="status">Status</Label>
-                              <Select value={donorFormData.status} onValueChange={v => setDonorFormData({ ...donorFormData, status: v })}>
-                                <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                                <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
-                              </Select>
+                              <SearchableSelect
+                                options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
+                                value={donorFormData.status}
+                                onValueChange={v => setDonorFormData({ ...donorFormData, status: v })}
+                                placeholder="Select status"
+                                searchPlaceholder="Search status..."
+                              />
                             </div>
                             <Button type="submit" className="w-full">{editingDonor ? "Update Donor" : "Add Donor"}</Button>
                           </form>
@@ -693,33 +700,46 @@ export default function Home() {
                           <form onSubmit={handleDonationSubmit} className="space-y-4">
                             <div className="space-y-2">
                               <Label htmlFor="donor_id">Donor *</Label>
-                              <Select value={donationFormData.donor_id} onValueChange={v => {
-                                const selectedDonor = donors.find(d => d.id === v);
-                                setDonationFormData({ 
-                                  ...donationFormData, 
-                                  donor_id: v,
-                                  amount: selectedDonor?.monthly_sanda_amount?.toString() || donationFormData.amount
-                                });
-                              }}>
-                                <SelectTrigger><SelectValue placeholder="Select Donor" /></SelectTrigger>
-                                <SelectContent>{donors.map(d => <SelectItem key={d.id} value={d.id}>{d.card_number} - {d.name}</SelectItem>)}</SelectContent>
-                              </Select>
+                              <SearchableSelect
+                                options={donors.map(d => ({ value: d.id, label: `${d.card_number} - ${d.name}` }))}
+                                value={donationFormData.donor_id}
+                                onValueChange={v => {
+                                  const selectedDonor = donors.find(d => d.id === v);
+                                  setDonationFormData({ 
+                                    ...donationFormData, 
+                                    donor_id: v,
+                                    amount: selectedDonor?.monthly_sanda_amount?.toString() || donationFormData.amount
+                                  });
+                                }}
+                                placeholder="Select Donor"
+                                searchPlaceholder="Search donor by card or name..."
+                              />
                             </div>
                             <div className="space-y-2"><Label htmlFor="amount">Amount (Rs.) *</Label><Input id="amount" type="number" value={donationFormData.amount} onChange={e => setDonationFormData({ ...donationFormData, amount: e.target.value })} required /></div>
                             <div className="space-y-2"><Label htmlFor="date">Date *</Label><Input id="date" type="date" value={donationFormData.date} onChange={e => setDonationFormData({ ...donationFormData, date: e.target.value })} required /></div>
                             <div className="space-y-2">
                               <Label htmlFor="method">Method</Label>
-                              <Select value={donationFormData.method} onValueChange={v => setDonationFormData({ ...donationFormData, method: v })}>
-                                <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                                <SelectContent><SelectItem value="cash">Cash</SelectItem><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="cheque">Cheque</SelectItem></SelectContent>
-                              </Select>
+                              <SearchableSelect
+                                options={[
+                                  { value: "cash", label: "Cash" },
+                                  { value: "bank_transfer", label: "Bank Transfer" },
+                                  { value: "cheque", label: "Cheque" }
+                                ]}
+                                value={donationFormData.method}
+                                onValueChange={v => setDonationFormData({ ...donationFormData, method: v })}
+                                placeholder="Select method"
+                                searchPlaceholder="Search method..."
+                              />
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="year">Year</Label>
-                              <Select value={donationFormData.year} onValueChange={v => setDonationFormData({ ...donationFormData, year: v })}>
-                                <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
-                                <SelectContent>{years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}</SelectContent>
-                              </Select>
+                              <SearchableSelect
+                                options={years.map(y => ({ value: y.toString(), label: y.toString() }))}
+                                value={donationFormData.year}
+                                onValueChange={v => setDonationFormData({ ...donationFormData, year: v })}
+                                placeholder="Select year"
+                                searchPlaceholder="Search year..."
+                              />
                             </div>
                             <div className="space-y-2">
                               <Label>Months Paid</Label>
