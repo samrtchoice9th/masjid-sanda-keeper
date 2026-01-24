@@ -56,12 +56,12 @@ export default function Home() {
   });
   const [donationFormData, setDonationFormData] = useState({
     donor_id: "", amount: "", date: new Date().toISOString().split("T")[0],
-    method: "sanda", year: new Date().getFullYear().toString(), months_paid: [] as number[],
+    method: "cash", year: new Date().getFullYear().toString(), months_paid: [] as number[],
   });
 
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const years = Array.from({ length: currentYear - 2024 + 2 }, (_, i) => 2024 + i);
 
   // Fetch all donors on mount
   useEffect(() => {
@@ -291,7 +291,7 @@ export default function Home() {
     setEditingDonation(d);
     setDonationFormData({
       donor_id: d.donor_id, amount: d.amount?.toString() || "", date: d.date || new Date().toISOString().split("T")[0],
-      method: d.method || "sanda", year: d.year?.toString() || new Date().getFullYear().toString(),
+      method: d.method || "cash", year: d.year?.toString() || new Date().getFullYear().toString(),
       months_paid: d.months_paid || [],
     });
     setDonationDialogOpen(true);
@@ -312,7 +312,7 @@ export default function Home() {
   };
 
   const resetDonationForm = () => {
-    setDonationFormData({ donor_id: "", amount: "", date: new Date().toISOString().split("T")[0], method: "sanda", year: new Date().getFullYear().toString(), months_paid: [] });
+    setDonationFormData({ donor_id: "", amount: "", date: new Date().toISOString().split("T")[0], method: "cash", year: new Date().getFullYear().toString(), months_paid: [] });
     setEditingDonation(null);
   };
 
@@ -693,7 +693,14 @@ export default function Home() {
                           <form onSubmit={handleDonationSubmit} className="space-y-4">
                             <div className="space-y-2">
                               <Label htmlFor="donor_id">Donor *</Label>
-                              <Select value={donationFormData.donor_id} onValueChange={v => setDonationFormData({ ...donationFormData, donor_id: v })}>
+                              <Select value={donationFormData.donor_id} onValueChange={v => {
+                                const selectedDonor = donors.find(d => d.id === v);
+                                setDonationFormData({ 
+                                  ...donationFormData, 
+                                  donor_id: v,
+                                  amount: selectedDonor?.monthly_sanda_amount?.toString() || donationFormData.amount
+                                });
+                              }}>
                                 <SelectTrigger><SelectValue placeholder="Select Donor" /></SelectTrigger>
                                 <SelectContent>{donors.map(d => <SelectItem key={d.id} value={d.id}>{d.card_number} - {d.name}</SelectItem>)}</SelectContent>
                               </Select>
@@ -704,7 +711,7 @@ export default function Home() {
                               <Label htmlFor="method">Method</Label>
                               <Select value={donationFormData.method} onValueChange={v => setDonationFormData({ ...donationFormData, method: v })}>
                                 <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                                <SelectContent><SelectItem value="sanda">Sanda</SelectItem><SelectItem value="cash">Cash</SelectItem><SelectItem value="bank">Bank Transfer</SelectItem></SelectContent>
+                                <SelectContent><SelectItem value="cash">Cash</SelectItem><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="cheque">Cheque</SelectItem></SelectContent>
                               </Select>
                             </div>
                             <div className="space-y-2">
