@@ -94,6 +94,7 @@ export type Database = {
           monthly_sanda_amount: number | null
           name: string
           nic_or_id: string | null
+          payment_frequency: string | null
           phone: string | null
           root_no: string | null
           status: string | null
@@ -107,6 +108,7 @@ export type Database = {
           monthly_sanda_amount?: number | null
           name: string
           nic_or_id?: string | null
+          payment_frequency?: string | null
           phone?: string | null
           root_no?: string | null
           status?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           monthly_sanda_amount?: number | null
           name?: string
           nic_or_id?: string | null
+          payment_frequency?: string | null
           phone?: string | null
           root_no?: string | null
           status?: string | null
