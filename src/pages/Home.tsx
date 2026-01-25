@@ -53,6 +53,7 @@ export default function Home() {
   const [donorFormData, setDonorFormData] = useState({
     name: "", root_no: "", card_number: "", phone: "",
     monthly_sanda_amount: "", address: "", nic_or_id: "", status: "active",
+    payment_frequency: "monthly",
   });
   const [donationFormData, setDonationFormData] = useState({
     donor_id: "", amount: "", date: new Date().toISOString().split("T")[0],
@@ -210,7 +211,7 @@ export default function Home() {
   const handleDonorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const submitData = { ...donorFormData, monthly_sanda_amount: donorFormData.monthly_sanda_amount ? parseFloat(donorFormData.monthly_sanda_amount) : null };
+      const submitData = { ...donorFormData, monthly_sanda_amount: donorFormData.monthly_sanda_amount ? parseFloat(donorFormData.monthly_sanda_amount) : null, payment_frequency: donorFormData.payment_frequency };
       if (editingDonor) {
         const { error } = await supabase.from("donors").update(submitData).eq("id", editingDonor.id);
         if (error) throw error;
@@ -236,6 +237,7 @@ export default function Home() {
       name: d.name, root_no: d.root_no || "", card_number: d.card_number, phone: d.phone || "",
       monthly_sanda_amount: d.monthly_sanda_amount?.toString() || "", address: d.address || "",
       nic_or_id: d.nic_or_id || "", status: d.status || "active",
+      payment_frequency: d.payment_frequency || "monthly",
     });
     setDonorDialogOpen(true);
   };
@@ -255,7 +257,7 @@ export default function Home() {
   };
 
   const resetDonorForm = () => {
-    setDonorFormData({ name: "", root_no: "", card_number: "", phone: "", monthly_sanda_amount: "", address: "", nic_or_id: "", status: "active" });
+    setDonorFormData({ name: "", root_no: "", card_number: "", phone: "", monthly_sanda_amount: "", address: "", nic_or_id: "", status: "active", payment_frequency: "monthly" });
     setEditingDonor(null);
   };
 
@@ -418,7 +420,15 @@ export default function Home() {
                         )}
                         <div className="flex items-start gap-2">
                           <FileText className="h-4 w-4 text-primary mt-0.5" />
-                          <div><p className="text-xs text-muted-foreground">Monthly Sanda Amount</p><p className="font-medium text-sm">Rs. {donor.monthly_sanda_amount ? Number(donor.monthly_sanda_amount).toLocaleString() : 'N/A'}</p></div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              {donor.payment_frequency === "yearly" ? "Yearly Sanda Amount" : "Monthly Sanda Amount"}
+                            </p>
+                            <p className="font-medium text-sm">Rs. {donor.monthly_sanda_amount ? Number(donor.monthly_sanda_amount).toLocaleString() : 'N/A'}</p>
+                            {donor.payment_frequency === "yearly" && (
+                              <Badge variant="secondary" className="mt-1 text-xs">Yearly Payment</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -627,7 +637,22 @@ export default function Home() {
                             </div>
                             <div className="space-y-2"><Label htmlFor="card_number">Card No. *</Label><Input id="card_number" value={donorFormData.card_number} onChange={e => setDonorFormData({ ...donorFormData, card_number: e.target.value })} placeholder="CARD-12345" required /></div>
                             <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" value={donorFormData.phone} onChange={e => setDonorFormData({ ...donorFormData, phone: e.target.value })} placeholder="+94-77-xxxxxxx" /></div>
-                            <div className="space-y-2"><Label htmlFor="monthly_sanda_amount">Monthly Sanda Amount (Rs.) *</Label><Input id="monthly_sanda_amount" type="number" value={donorFormData.monthly_sanda_amount} onChange={e => setDonorFormData({ ...donorFormData, monthly_sanda_amount: e.target.value })} required /></div>
+                            <div className="space-y-2">
+                              <Label htmlFor="payment_frequency">Payment Frequency *</Label>
+                              <SearchableSelect
+                                options={[{ value: "monthly", label: "Monthly" }, { value: "yearly", label: "Yearly" }]}
+                                value={donorFormData.payment_frequency}
+                                onValueChange={v => setDonorFormData({ ...donorFormData, payment_frequency: v })}
+                                placeholder="Select frequency"
+                                searchPlaceholder="Search..."
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="monthly_sanda_amount">
+                                {donorFormData.payment_frequency === "yearly" ? "Yearly Sanda Amount (Rs.) *" : "Monthly Sanda Amount (Rs.) *"}
+                              </Label>
+                              <Input id="monthly_sanda_amount" type="number" value={donorFormData.monthly_sanda_amount} onChange={e => setDonorFormData({ ...donorFormData, monthly_sanda_amount: e.target.value })} required />
+                            </div>
                             <div className="space-y-2"><Label htmlFor="address">Address</Label><Input id="address" value={donorFormData.address} onChange={e => setDonorFormData({ ...donorFormData, address: e.target.value })} /></div>
                             <div className="space-y-2"><Label htmlFor="nic_or_id">NIC / ID</Label><Input id="nic_or_id" value={donorFormData.nic_or_id} onChange={e => setDonorFormData({ ...donorFormData, nic_or_id: e.target.value })} /></div>
                             <div className="space-y-2">
@@ -667,7 +692,11 @@ export default function Home() {
                                 <div>
                                   <p className="font-medium">{d.name}</p>
                                   <p className="text-sm text-muted-foreground">{d.root_no && `${d.root_no} • `}{d.card_number}{d.phone && ` • ${d.phone}`}</p>
-                                  {d.monthly_sanda_amount && <p className="text-xs text-primary font-semibold">Monthly Sanda: Rs. {Number(d.monthly_sanda_amount).toLocaleString()}</p>}
+                                  {d.monthly_sanda_amount && (
+                                    <p className="text-xs text-primary font-semibold">
+                                      {d.payment_frequency === "yearly" ? "Yearly" : "Monthly"} Sanda: Rs. {Number(d.monthly_sanda_amount).toLocaleString()}
+                                    </p>
+                                  )}
                                   <Badge variant={d.status === "active" ? "default" : "secondary"} className="mt-1">{d.status || "active"}</Badge>
                                 </div>
                                 <div className="flex gap-2">
@@ -701,14 +730,19 @@ export default function Home() {
                             <div className="space-y-2">
                               <Label htmlFor="donor_id">Donor *</Label>
                               <SearchableSelect
-                                options={donors.map(d => ({ value: d.id, label: `${d.card_number} - ${d.name}` }))}
+                                options={donors.map(d => ({ 
+                                  value: d.id, 
+                                  label: `${d.card_number} - ${d.name}${d.payment_frequency === "yearly" ? " (Yearly)" : ""}` 
+                                }))}
                                 value={donationFormData.donor_id}
                                 onValueChange={v => {
                                   const selectedDonor = donors.find(d => d.id === v);
+                                  const isYearly = selectedDonor?.payment_frequency === "yearly";
                                   setDonationFormData({ 
                                     ...donationFormData, 
                                     donor_id: v,
-                                    amount: selectedDonor?.monthly_sanda_amount?.toString() || donationFormData.amount
+                                    amount: selectedDonor?.monthly_sanda_amount?.toString() || donationFormData.amount,
+                                    months_paid: isYearly ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : donationFormData.months_paid
                                   });
                                 }}
                                 placeholder="Select Donor"
@@ -742,11 +776,33 @@ export default function Home() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Months Paid</Label>
+                              <div className="flex items-center justify-between">
+                                <Label>Months Paid</Label>
+                                {(() => {
+                                  const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+                                  return selectedDonor?.payment_frequency === "yearly" ? (
+                                    <Badge variant="secondary" className="text-xs">Full Year Payment</Badge>
+                                  ) : null;
+                                })()}
+                              </div>
                               <div className="grid grid-cols-4 gap-2">
-                                {monthNames.map((m, i) => (
-                                  <Button key={i} type="button" variant={donationFormData.months_paid.includes(i + 1) ? "default" : "outline"} size="sm" onClick={() => toggleMonthPaid(i + 1)}>{m}</Button>
-                                ))}
+                                {monthNames.map((m, i) => {
+                                  const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+                                  const isYearly = selectedDonor?.payment_frequency === "yearly";
+                                  return (
+                                    <Button 
+                                      key={i} 
+                                      type="button" 
+                                      variant={donationFormData.months_paid.includes(i + 1) ? "default" : "outline"} 
+                                      size="sm" 
+                                      onClick={() => !isYearly && toggleMonthPaid(i + 1)}
+                                      disabled={isYearly}
+                                      className={isYearly ? "opacity-80" : ""}
+                                    >
+                                      {m}
+                                    </Button>
+                                  );
+                                })}
                               </div>
                             </div>
                             <Button type="submit" className="w-full">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
