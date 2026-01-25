@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft } from "lucide-react";
+import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +12,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { generateSandaReceipt } from "@/utils/receiptGenerator";
 
 type AdminView = "dashboard" | "donors" | "donations";
 
@@ -262,7 +263,7 @@ export default function Home() {
   };
 
   // Donation CRUD
-  const handleDonationSubmit = async (e: React.FormEvent) => {
+  const handleDonationSubmit = async (e: React.FormEvent, generateReceipt: boolean = false) => {
     e.preventDefault();
     try {
       const submitData = {
@@ -279,6 +280,27 @@ export default function Home() {
         if (error) throw error;
         toast({ title: "Success", description: "Donation recorded successfully" });
       }
+      
+      // Generate receipt if requested
+      if (generateReceipt) {
+        const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+        if (selectedDonor) {
+          await generateSandaReceipt({
+            donorName: selectedDonor.name,
+            cardNumber: selectedDonor.card_number,
+            rootNo: selectedDonor.root_no,
+            phone: selectedDonor.phone,
+            address: selectedDonor.address,
+            amount: parseFloat(donationFormData.amount),
+            date: donationFormData.date,
+            method: donationFormData.method,
+            year: parseInt(donationFormData.year),
+            monthsPaid: donationFormData.months_paid,
+            paymentFrequency: selectedDonor.payment_frequency,
+          });
+        }
+      }
+      
       setDonationDialogOpen(false);
       resetDonationForm();
       loadDonations();
@@ -287,6 +309,31 @@ export default function Home() {
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
+  };
+
+  // Generate receipt for existing donation
+  const handleDownloadReceipt = async (donation: any) => {
+    const donorInfo = donation.donors || donors.find((d: any) => d.id === donation.donor_id);
+    if (!donorInfo) {
+      toast({ title: "Error", description: "Donor information not found", variant: "destructive" });
+      return;
+    }
+    
+    await generateSandaReceipt({
+      donorName: donorInfo.name,
+      cardNumber: donorInfo.card_number,
+      rootNo: donorInfo.root_no,
+      phone: donorInfo.phone,
+      address: donorInfo.address,
+      amount: Number(donation.amount),
+      date: donation.date,
+      method: donation.method,
+      year: donation.year,
+      monthsPaid: donation.months_paid || [],
+      paymentFrequency: donorInfo.payment_frequency,
+    });
+    
+    toast({ title: "Success", description: "Receipt downloaded successfully" });
   };
 
   const handleEditDonation = (d: any) => {
@@ -805,7 +852,20 @@ export default function Home() {
                                 })}
                               </div>
                             </div>
-                            <Button type="submit" className="w-full">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
+                            <div className="flex gap-2">
+                              <Button type="submit" className="flex-1">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
+                              {!editingDonation && (
+                                <Button 
+                                  type="button" 
+                                  variant="secondary" 
+                                  onClick={(e) => handleDonationSubmit(e, true)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Save & Receipt
+                                </Button>
+                              )}
+                            </div>
                           </form>
                         </DialogContent>
                       </Dialog>
@@ -840,6 +900,7 @@ export default function Home() {
                                 <div className="flex items-center gap-4">
                                   <p className="font-bold text-primary">Rs. {Number(d.amount).toLocaleString()}</p>
                                   <div className="flex gap-2">
+                                    <Button variant="outline" size="icon" onClick={() => handleDownloadReceipt(d)} title="Download Receipt"><Download className="h-4 w-4" /></Button>
                                     <Button variant="outline" size="icon" onClick={() => handleEditDonation(d)}><Edit className="h-4 w-4" /></Button>
                                     <Button variant="outline" size="icon" onClick={() => handleDeleteDonation(d.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                   </div>
