@@ -366,12 +366,26 @@ export default function Home() {
   };
 
   const toggleMonthPaid = (month: number) => {
-    setDonationFormData(prev => ({
-      ...prev,
-      months_paid: prev.months_paid.includes(month) 
+    const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+    const monthlyRate = selectedDonor?.monthly_sanda_amount || 0;
+    const isYearly = selectedDonor?.payment_frequency === "yearly";
+    
+    setDonationFormData(prev => {
+      const newMonthsPaid = prev.months_paid.includes(month) 
         ? prev.months_paid.filter(m => m !== month)
-        : [...prev.months_paid, month].sort((a, b) => a - b)
-    }));
+        : [...prev.months_paid, month].sort((a, b) => a - b);
+      
+      // For yearly donors, amount stays fixed; for monthly donors, calculate: rate x number of months
+      const newAmount = isYearly 
+        ? monthlyRate 
+        : monthlyRate * newMonthsPaid.length;
+      
+      return {
+        ...prev,
+        months_paid: newMonthsPaid,
+        amount: newAmount.toString()
+      };
+    });
   };
 
   const filteredDonorsList = donors.filter(d => 
@@ -785,11 +799,18 @@ export default function Home() {
                                 onValueChange={v => {
                                   const selectedDonor = donors.find(d => d.id === v);
                                   const isYearly = selectedDonor?.payment_frequency === "yearly";
+                                  const monthlyRate = selectedDonor?.monthly_sanda_amount || 0;
+                                  
+                                  // For yearly: auto-select all 12 months and set full amount
+                                  // For monthly: reset months and set amount to 0 initially
+                                  const newMonthsPaid = isYearly ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [];
+                                  const newAmount = isYearly ? monthlyRate : 0;
+                                  
                                   setDonationFormData({ 
                                     ...donationFormData, 
                                     donor_id: v,
-                                    amount: selectedDonor?.monthly_sanda_amount?.toString() || donationFormData.amount,
-                                    months_paid: isYearly ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : donationFormData.months_paid
+                                    amount: newAmount.toString(),
+                                    months_paid: newMonthsPaid
                                   });
                                 }}
                                 placeholder="Select Donor"
@@ -851,6 +872,19 @@ export default function Home() {
                                   );
                                 })}
                               </div>
+                              {donationFormData.donor_id && donationFormData.months_paid.length > 0 && (
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  {(() => {
+                                    const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+                                    const rate = selectedDonor?.monthly_sanda_amount || 0;
+                                    const isYearly = selectedDonor?.payment_frequency === "yearly";
+                                    if (isYearly) {
+                                      return `Yearly payment: Rs. ${Number(rate).toLocaleString()}`;
+                                    }
+                                    return `Rs. ${Number(rate).toLocaleString()} × ${donationFormData.months_paid.length} month(s) = Rs. ${(Number(rate) * donationFormData.months_paid.length).toLocaleString()}`;
+                                  })()}
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <Button type="submit" className="flex-1">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
