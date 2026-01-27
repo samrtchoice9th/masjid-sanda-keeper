@@ -1,140 +1,232 @@
 
 
-## Plan: Dual Distribution - Native Android + PWA for iOS
+## Plan: Transform to Masjid Management App with Dashboard and 3 Modules
 
 ### Overview
-Set up PWA (Progressive Web App) support for iOS users while keeping the existing Capacitor configuration for Android native app builds.
-
-**Distribution Strategy:**
-- **Android Users**: Native APK via Capacitor (already configured)
-- **iOS Users**: Installable PWA from browser (to be added)
+Transform the existing Sanda Donation app into a comprehensive Masjid Management App with:
+- A **Dashboard** (home screen with summary cards)
+- **3 Clear Modules**: Sanda Donation, Data Collection, Baithul Zakat
 
 ---
 
-### Changes Required
+### Database Changes Required
 
-#### 1. Install PWA Plugin
+#### New Tables to Create
 
-Add `vite-plugin-pwa` dependency to enable PWA functionality.
+**1. `families` table** - For Data Collection module
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| family_name | text | Head of family name |
+| address | text | Family address |
+| phone | text | Contact phone |
+| root_no | text | Root number (Root-1 to Root-6) |
+| total_members | integer | Number of family members |
+| notes | text | Additional notes |
+| created_at | timestamp | Record creation time |
 
----
+**2. `family_members` table** - Individual family members
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| family_id | uuid | Foreign key to families |
+| name | text | Member name |
+| age | integer | Age |
+| gender | text | Male/Female |
+| relationship | text | Relationship to head (e.g., Wife, Son, Daughter) |
+| occupation | text | Job/Occupation |
+| created_at | timestamp | Record creation time |
 
-#### 2. Configure Vite for PWA
-
-**File:** `vite.config.ts`
-
-Add PWA plugin configuration with:
-- App name: "Masjid Sanda Register"
-- Short name: "Sanda Register"
-- Theme color matching app branding (emerald green)
-- Icons for various sizes (192x192, 512x512)
-- Service worker for offline support
-- iOS-specific meta tags support
-
----
-
-#### 3. Update HTML with PWA Meta Tags
-
-**File:** `index.html`
-
-Add mobile-optimized meta tags:
-- Apple-specific tags for iOS home screen
-- Theme color meta tag
-- Apple touch icon links
-- Apple mobile web app capable tag
-- Status bar style
-
----
-
-#### 4. Create PWA Icons
-
-Generate required icon sizes in `public/` folder:
-- `pwa-192x192.png` - Standard PWA icon
-- `pwa-512x512.png` - Large PWA icon
-- `apple-touch-icon.png` - iOS home screen icon (180x180)
-
-These will be created from the existing `ahsan-logo.png`.
+**3. `zakat_transactions` table** - For Baithul Zakat module
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| type | text | "collection" or "distribution" |
+| amount | numeric | Transaction amount |
+| date | date | Transaction date |
+| recipient_name | text | Name (for distribution) |
+| donor_name | text | Name (for collection) |
+| purpose | text | Purpose/reason |
+| method | text | Cash/Bank Transfer/Cheque |
+| notes | text | Additional notes |
+| created_at | timestamp | Record creation time |
 
 ---
 
-#### 5. Create Install Page (Optional but Recommended)
-
-**File:** `src/pages/Install.tsx`
-
-A dedicated page at `/install` that:
-- Detects if user is on iOS
-- Shows step-by-step instructions for iOS users:
-  1. Tap the Share button
-  2. Scroll down and tap "Add to Home Screen"
-  3. Tap "Add" to confirm
-- Shows Android users a link to download the APK
-- Provides visual guides for installation
-
----
-
-### Technical Details
+### Application Architecture
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│                  User Access Flow                    │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  Android User                    iOS User            │
-│       │                              │               │
-│       ▼                              ▼               │
-│  Download APK                  Visit Website         │
-│  (Capacitor Build)                   │               │
-│       │                              ▼               │
-│       ▼                     Share → Add to Home      │
-│  Install Native App               Screen             │
-│       │                              │               │
-│       ▼                              ▼               │
-│  Full Native                   PWA Installed         │
-│  Experience                    (Offline Ready)       │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-```
-
-**PWA Configuration in vite.config.ts:**
-```typescript
-import { VitePWA } from 'vite-plugin-pwa'
-
-VitePWA({
-  registerType: 'autoUpdate',
-  includeAssets: ['favicon.ico', 'ahsan-logo.png'],
-  manifest: {
-    name: 'Masjid Sanda Register',
-    short_name: 'Sanda Register',
-    description: 'Track and manage mosque monthly donations',
-    theme_color: '#10b981',
-    background_color: '#ffffff',
-    display: 'standalone',
-    icons: [...]
-  }
-})
+┌─────────────────────────────────────────────────────────────────┐
+│                        MASJID MANAGEMENT APP                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                     DASHBOARD (Home)                      │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐  │   │
+│  │  │   Sanda    │  │    Data    │  │   Baithul Zakat    │  │   │
+│  │  │ Donation   │  │ Collection │  │                    │  │   │
+│  │  │ Summary    │  │  Summary   │  │     Summary        │  │   │
+│  │  └────────────┘  └────────────┘  └────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    MODULE NAVIGATION                      │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐  │   │
+│  │  │   Sanda    │  │    Data    │  │   Baithul Zakat    │  │   │
+│  │  │  Module    │  │  Collection│  │      Module        │  │   │
+│  │  │            │  │   Module   │  │                    │  │   │
+│  │  └────────────┘  └────────────┘  └────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Summary of Files
+### File Changes
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `package.json` | Modify | Add vite-plugin-pwa dependency |
-| `vite.config.ts` | Modify | Configure PWA plugin |
-| `index.html` | Modify | Add iOS/PWA meta tags |
-| `public/pwa-192x192.png` | Create | PWA icon |
-| `public/pwa-512x512.png` | Create | PWA icon |
-| `public/apple-touch-icon.png` | Create | iOS icon |
-| `src/pages/Install.tsx` | Create | Installation guide page |
-| `src/App.tsx` | Modify | Add /install route |
+#### 1. Create New Component Files
+
+| File | Purpose |
+|------|---------|
+| `src/components/Dashboard.tsx` | Main dashboard with 3 summary cards |
+| `src/components/modules/SandaDonation.tsx` | Existing sanda functionality (refactored) |
+| `src/components/modules/DataCollection.tsx` | Family data collection module |
+| `src/components/modules/BaithulZakat.tsx` | Zakat collection/distribution module |
+| `src/hooks/useDashboardStats.ts` | Hook for fetching dashboard statistics |
+
+#### 2. Modify Existing Files
+
+| File | Changes |
+|------|---------|
+| `src/pages/Home.tsx` | Restructure to show Dashboard + Module navigation |
+| `src/components/Header.tsx` | Update title to "Masjid Management" |
+| `src/integrations/supabase/types.ts` | Auto-generated after DB migrations |
 
 ---
 
-### Result
+### Dashboard Design
 
-After implementation:
-- **iOS users** can visit the app, tap Share → "Add to Home Screen" and get an app-like experience with offline support
-- **Android users** continue using the native APK built with Capacitor
-- Both platforms get the same functionality, just different distribution methods
+#### Summary Cards Layout
+
+**Card 1: Sanda Donation**
+- Current month total collection (auto-calculated from `donations` table)
+- Number of members paid this month
+- Number of members pending this month
+
+**Card 2: Data Collection**
+- Total families registered (count from `families` table)
+- Total individuals count (count from `family_members` table)
+
+**Card 3: Baithul Zakat**
+- Total collected (sum of `zakat_transactions` where type = 'collection')
+- Total distributed (sum of `zakat_transactions` where type = 'distribution')
+- Remaining balance (collected - distributed)
+
+---
+
+### Module Details
+
+#### Module 1: Sanda Donation (Existing - Refactored)
+- Existing donor management functionality
+- Existing donation recording functionality
+- Public lookup feature remains unchanged
+- Receipt generation continues to work
+
+#### Module 2: Data Collection (New)
+- Add/Edit/Delete families
+- Add/Edit/Delete family members within each family
+- View family list with member counts
+- Search by family name or root number
+
+#### Module 3: Baithul Zakat (New)
+- Record Zakat collections (from donors)
+- Record Zakat distributions (to recipients)
+- View transaction history
+- Filter by type (collection/distribution)
+- Balance tracking
+
+---
+
+### Navigation Flow
+
+```text
+Home Screen (Dashboard)
+    │
+    ├── Summary Cards (read-only stats)
+    │
+    └── Module Cards (clickable)
+         │
+         ├── Sanda Donation ──→ Donor Management, Donation Recording
+         │
+         ├── Data Collection ──→ Family Management, Member Management
+         │
+         └── Baithul Zakat ──→ Collections, Distributions, Balance
+```
+
+---
+
+### Implementation Steps
+
+**Step 1: Database Setup**
+- Create `families` table with RLS policies
+- Create `family_members` table with RLS policies
+- Create `zakat_transactions` table with RLS policies
+
+**Step 2: Create Dashboard Component**
+- Build `Dashboard.tsx` with 3 summary cards
+- Create `useDashboardStats.ts` hook for data fetching
+- Auto-calculate all statistics from database
+
+**Step 3: Refactor Sanda Module**
+- Extract existing sanda logic into `SandaDonation.tsx`
+- Keep all current functionality intact
+
+**Step 4: Build Data Collection Module**
+- Create `DataCollection.tsx` component
+- Family CRUD operations
+- Family member CRUD operations
+- Search and filter capabilities
+
+**Step 5: Build Baithul Zakat Module**
+- Create `BaithulZakat.tsx` component
+- Collection recording
+- Distribution recording
+- Balance calculation
+- Transaction history view
+
+**Step 6: Update Home Page**
+- Integrate Dashboard as main view
+- Add module navigation
+- Keep public "Check Sanda" tab functional
+
+---
+
+### Technical Notes
+
+**RLS Policies Pattern:**
+- All new tables use existing `has_role()` function for admin access
+- Public can view specific data (similar to donors table pattern)
+
+**State Management:**
+- Use existing patterns (useState, useEffect)
+- React Query for data fetching where applicable
+
+**UI Components:**
+- Reuse existing UI components (Card, Button, Dialog, etc.)
+- Maintain consistent styling with current design
+- Mobile-responsive layout
+
+---
+
+### Summary
+
+| Item | Count |
+|------|-------|
+| New database tables | 3 |
+| New components | 5 |
+| Modified files | 2 |
+| Modules | 3 |
+
+This plan keeps the app simple, private (admin-only access for management), and accurate (all calculations from database).
 
