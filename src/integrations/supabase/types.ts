@@ -130,6 +130,80 @@ export type Database = {
         }
         Relationships: []
       }
+      families: {
+        Row: {
+          address: string | null
+          created_at: string
+          family_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          root_no: string | null
+          total_members: number | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          family_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          root_no?: string | null
+          total_members?: number | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          family_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          root_no?: string | null
+          total_members?: number | null
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          age: number | null
+          created_at: string
+          family_id: string
+          gender: string | null
+          id: string
+          name: string
+          occupation: string | null
+          relationship: string | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          family_id: string
+          gender?: string | null
+          id?: string
+          name: string
+          occupation?: string | null
+          relationship?: string | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          family_id?: string
+          gender?: string | null
+          id?: string
+          name?: string
+          occupation?: string | null
+          relationship?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_logs: {
         Row: {
           created_at: string | null
@@ -192,6 +266,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      zakat_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          donor_name: string | null
+          id: string
+          method: string | null
+          notes: string | null
+          purpose: string | null
+          recipient_name: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date?: string
+          donor_name?: string | null
+          id?: string
+          method?: string | null
+          notes?: string | null
+          purpose?: string | null
+          recipient_name?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          donor_name?: string | null
+          id?: string
+          method?: string | null
+          notes?: string | null
+          purpose?: string | null
+          recipient_name?: string | null
+          type?: string
         }
         Relationships: []
       }
