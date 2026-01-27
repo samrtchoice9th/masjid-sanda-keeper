@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download } from "lucide-react";
+import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download, Home, Wallet } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,10 +13,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateSandaReceipt } from "@/utils/receiptGenerator";
+import { Dashboard } from "@/components/Dashboard";
+import { DataCollection } from "@/components/modules/DataCollection";
+import { BaithulZakat } from "@/components/modules/BaithulZakat";
 
-type AdminView = "dashboard" | "donors" | "donations";
+type AdminView = "dashboard" | "sanda-donors" | "sanda-donations" | "data-collection" | "baithul-zakat";
 
-export default function Home() {
+export default function HomePage() {
   const [activeTab, setActiveTab] = useState("public");
   const { toast } = useToast();
   const { user, isAdmin, signIn, signUp, signOut, loading: authLoading } = useAuth();
@@ -375,7 +378,6 @@ export default function Home() {
         ? prev.months_paid.filter(m => m !== month)
         : [...prev.months_paid, month].sort((a, b) => a - b);
       
-      // For yearly donors, amount stays fixed; for monthly donors, calculate: rate x number of months
       const newAmount = isYearly 
         ? monthlyRate 
         : monthlyRate * newMonthsPaid.length;
@@ -607,45 +609,69 @@ export default function Home() {
                 {adminView === "dashboard" && (
                   <>
                     <div className="mb-6 flex items-center justify-between">
-                      <h2 className="text-2xl font-bold">Admin Dashboard</h2>
+                      <h2 className="text-2xl font-bold">Masjid Management</h2>
                       <Button variant="outline" onClick={signOut}><LogOut className="mr-2 h-4 w-4" />Sign Out</Button>
                     </div>
 
-                    <div className="mb-6 grid gap-4 md:grid-cols-3">
-                      <Card className="shadow-card">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardTitle className="text-sm font-medium">Total Donors</CardTitle>
-                          <Users className="h-4 w-4 text-primary" />
+                    {/* Dashboard Summary Cards */}
+                    <Dashboard />
+
+                    {/* Module Navigation Cards */}
+                    <h3 className="text-lg font-semibold mt-8 mb-4">Modules</h3>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Card 
+                        className="cursor-pointer shadow-card transition-all hover:shadow-lg border-l-4 border-l-primary" 
+                        onClick={() => setAdminView("sanda-donors")}
+                      >
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Wallet className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-base">Sanda Donation</CardTitle>
+                              <CardDescription>Manage donors & donations</CardDescription>
+                            </div>
+                          </div>
                         </CardHeader>
-                        <CardContent><div className="text-2xl font-bold">{stats.totalDonors}</div></CardContent>
                       </Card>
-                      <Card className="shadow-card">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
-                          <TrendingUp className="h-4 w-4 text-primary" />
+                      <Card 
+                        className="cursor-pointer shadow-card transition-all hover:shadow-lg border-l-4 border-l-blue-500" 
+                        onClick={() => setAdminView("data-collection")}
+                      >
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-500/10">
+                              <Home className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-base">Data Collection</CardTitle>
+                              <CardDescription>Family & member records</CardDescription>
+                            </div>
+                          </div>
                         </CardHeader>
-                        <CardContent><div className="text-2xl font-bold">{stats.totalDonations}</div></CardContent>
                       </Card>
-                      <Card className="shadow-card">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardTitle className="text-sm font-medium">This Month</CardTitle>
-                          <DollarSign className="h-4 w-4 text-primary" />
+                      <Card 
+                        className="cursor-pointer shadow-card transition-all hover:shadow-lg border-l-4 border-l-emerald-500" 
+                        onClick={() => setAdminView("baithul-zakat")}
+                      >
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-500/10">
+                              <TrendingUp className="h-5 w-5 text-emerald-500" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-base">Baithul Zakat</CardTitle>
+                              <CardDescription>Zakat collection & distribution</CardDescription>
+                            </div>
+                          </div>
                         </CardHeader>
-                        <CardContent><div className="text-2xl font-bold">Rs. {stats.monthlyTotal.toLocaleString()}</div></CardContent>
                       </Card>
                     </div>
 
-                    <div className="mb-6 grid gap-4 md:grid-cols-2">
-                      <Card className="cursor-pointer shadow-card transition-all hover:shadow-lg" onClick={() => setAdminView("donors")}>
-                        <CardHeader><CardTitle>Manage Donors</CardTitle><CardDescription>Add, edit, and view donor information</CardDescription></CardHeader>
-                      </Card>
-                      <Card className="cursor-pointer shadow-card transition-all hover:shadow-lg" onClick={() => setAdminView("donations")}>
-                        <CardHeader><CardTitle>Manage Donations</CardTitle><CardDescription>Record and track all donations</CardDescription></CardHeader>
-                      </Card>
-                    </div>
-
-                    <Card className="shadow-card">
-                      <CardHeader><CardTitle>Recent Donations</CardTitle><CardDescription>Latest 5 donation records</CardDescription></CardHeader>
+                    {/* Recent Donations */}
+                    <Card className="shadow-card mt-6">
+                      <CardHeader><CardTitle>Recent Sanda Donations</CardTitle><CardDescription>Latest 5 donation records</CardDescription></CardHeader>
                       <CardContent>
                         {recentDonations.length === 0 ? (
                           <p className="text-center text-muted-foreground">No donations yet</p>
@@ -670,66 +696,72 @@ export default function Home() {
                   </>
                 )}
 
-                {adminView === "donors" && (
+                {/* Sanda Donors View */}
+                {adminView === "sanda-donors" && (
                   <>
                     <div className="mb-6 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <Button variant="outline" size="icon" onClick={() => setAdminView("dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
                         <h2 className="text-2xl font-bold">Manage Donors</h2>
                       </div>
-                      <Dialog open={donorDialogOpen} onOpenChange={(open) => { setDonorDialogOpen(open); if (!open) resetDonorForm(); }}>
-                        <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Add Donor</Button></DialogTrigger>
-                        <DialogContent className="max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>{editingDonor ? "Edit Donor" : "Add New Donor"}</DialogTitle>
-                            <DialogDescription>Fill in the donor information below</DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleDonorSubmit} className="space-y-4">
-                            <div className="space-y-2"><Label htmlFor="name">Name *</Label><Input id="name" value={donorFormData.name} onChange={e => setDonorFormData({ ...donorFormData, name: e.target.value })} required /></div>
-                            <div className="space-y-2">
-                              <Label htmlFor="root_no">Root No. *</Label>
-                              <SearchableSelect
-                                options={["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(r => ({ value: r, label: r }))}
-                                value={donorFormData.root_no}
-                                onValueChange={v => setDonorFormData({ ...donorFormData, root_no: v })}
-                                placeholder="Select Root No."
-                                searchPlaceholder="Search root..."
-                              />
-                            </div>
-                            <div className="space-y-2"><Label htmlFor="card_number">Card No. *</Label><Input id="card_number" value={donorFormData.card_number} onChange={e => setDonorFormData({ ...donorFormData, card_number: e.target.value })} placeholder="CARD-12345" required /></div>
-                            <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" value={donorFormData.phone} onChange={e => setDonorFormData({ ...donorFormData, phone: e.target.value })} placeholder="+94-77-xxxxxxx" /></div>
-                            <div className="space-y-2">
-                              <Label htmlFor="payment_frequency">Payment Frequency *</Label>
-                              <SearchableSelect
-                                options={[{ value: "monthly", label: "Monthly" }, { value: "yearly", label: "Yearly" }]}
-                                value={donorFormData.payment_frequency}
-                                onValueChange={v => setDonorFormData({ ...donorFormData, payment_frequency: v })}
-                                placeholder="Select frequency"
-                                searchPlaceholder="Search..."
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="monthly_sanda_amount">
-                                {donorFormData.payment_frequency === "yearly" ? "Yearly Sanda Amount (Rs.) *" : "Monthly Sanda Amount (Rs.) *"}
-                              </Label>
-                              <Input id="monthly_sanda_amount" type="number" value={donorFormData.monthly_sanda_amount} onChange={e => setDonorFormData({ ...donorFormData, monthly_sanda_amount: e.target.value })} required />
-                            </div>
-                            <div className="space-y-2"><Label htmlFor="address">Address</Label><Input id="address" value={donorFormData.address} onChange={e => setDonorFormData({ ...donorFormData, address: e.target.value })} /></div>
-                            <div className="space-y-2"><Label htmlFor="nic_or_id">NIC / ID</Label><Input id="nic_or_id" value={donorFormData.nic_or_id} onChange={e => setDonorFormData({ ...donorFormData, nic_or_id: e.target.value })} /></div>
-                            <div className="space-y-2">
-                              <Label htmlFor="status">Status</Label>
-                              <SearchableSelect
-                                options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
-                                value={donorFormData.status}
-                                onValueChange={v => setDonorFormData({ ...donorFormData, status: v })}
-                                placeholder="Select status"
-                                searchPlaceholder="Search status..."
-                              />
-                            </div>
-                            <Button type="submit" className="w-full">{editingDonor ? "Update Donor" : "Add Donor"}</Button>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setAdminView("sanda-donations")}>
+                          <DollarSign className="mr-2 h-4 w-4" />View Donations
+                        </Button>
+                        <Dialog open={donorDialogOpen} onOpenChange={(open) => { setDonorDialogOpen(open); if (!open) resetDonorForm(); }}>
+                          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Add Donor</Button></DialogTrigger>
+                          <DialogContent className="max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>{editingDonor ? "Edit Donor" : "Add New Donor"}</DialogTitle>
+                              <DialogDescription>Fill in the donor information below</DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleDonorSubmit} className="space-y-4">
+                              <div className="space-y-2"><Label htmlFor="name">Name *</Label><Input id="name" value={donorFormData.name} onChange={e => setDonorFormData({ ...donorFormData, name: e.target.value })} required /></div>
+                              <div className="space-y-2">
+                                <Label htmlFor="root_no">Root No. *</Label>
+                                <SearchableSelect
+                                  options={["Root-1", "Root-2", "Root-3", "Root-4", "Root-5", "Root-6"].map(r => ({ value: r, label: r }))}
+                                  value={donorFormData.root_no}
+                                  onValueChange={v => setDonorFormData({ ...donorFormData, root_no: v })}
+                                  placeholder="Select Root No."
+                                  searchPlaceholder="Search root..."
+                                />
+                              </div>
+                              <div className="space-y-2"><Label htmlFor="card_number">Card No. *</Label><Input id="card_number" value={donorFormData.card_number} onChange={e => setDonorFormData({ ...donorFormData, card_number: e.target.value })} placeholder="CARD-12345" required /></div>
+                              <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" value={donorFormData.phone} onChange={e => setDonorFormData({ ...donorFormData, phone: e.target.value })} placeholder="+94-77-xxxxxxx" /></div>
+                              <div className="space-y-2">
+                                <Label htmlFor="payment_frequency">Payment Frequency *</Label>
+                                <SearchableSelect
+                                  options={[{ value: "monthly", label: "Monthly" }, { value: "yearly", label: "Yearly" }]}
+                                  value={donorFormData.payment_frequency}
+                                  onValueChange={v => setDonorFormData({ ...donorFormData, payment_frequency: v })}
+                                  placeholder="Select frequency"
+                                  searchPlaceholder="Search..."
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="monthly_sanda_amount">
+                                  {donorFormData.payment_frequency === "yearly" ? "Yearly Sanda Amount (Rs.) *" : "Monthly Sanda Amount (Rs.) *"}
+                                </Label>
+                                <Input id="monthly_sanda_amount" type="number" value={donorFormData.monthly_sanda_amount} onChange={e => setDonorFormData({ ...donorFormData, monthly_sanda_amount: e.target.value })} required />
+                              </div>
+                              <div className="space-y-2"><Label htmlFor="address">Address</Label><Input id="address" value={donorFormData.address} onChange={e => setDonorFormData({ ...donorFormData, address: e.target.value })} /></div>
+                              <div className="space-y-2"><Label htmlFor="nic_or_id">NIC / ID</Label><Input id="nic_or_id" value={donorFormData.nic_or_id} onChange={e => setDonorFormData({ ...donorFormData, nic_or_id: e.target.value })} /></div>
+                              <div className="space-y-2">
+                                <Label htmlFor="status">Status</Label>
+                                <SearchableSelect
+                                  options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
+                                  value={donorFormData.status}
+                                  onValueChange={v => setDonorFormData({ ...donorFormData, status: v })}
+                                  placeholder="Select status"
+                                  searchPlaceholder="Search status..."
+                                />
+                              </div>
+                              <Button type="submit" className="w-full">{editingDonor ? "Update Donor" : "Add Donor"}</Button>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
 
                     <Card className="mb-4 shadow-card">
@@ -773,136 +805,140 @@ export default function Home() {
                   </>
                 )}
 
-                {adminView === "donations" && (
+                {/* Sanda Donations View */}
+                {adminView === "sanda-donations" && (
                   <>
                     <div className="mb-6 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <Button variant="outline" size="icon" onClick={() => setAdminView("dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
                         <h2 className="text-2xl font-bold">Manage Donations</h2>
                       </div>
-                      <Dialog open={donationDialogOpen} onOpenChange={(open) => { setDonationDialogOpen(open); if (!open) resetDonationForm(); }}>
-                        <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Add Donation</Button></DialogTrigger>
-                        <DialogContent className="max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>{editingDonation ? "Edit Donation" : "Record New Donation"}</DialogTitle>
-                            <DialogDescription>Fill in the donation details below</DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleDonationSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="donor_id">Donor *</Label>
-                              <SearchableSelect
-                                options={donors.map(d => ({ 
-                                  value: d.id, 
-                                  label: `${d.card_number} - ${d.name}${d.payment_frequency === "yearly" ? " (Yearly)" : ""}` 
-                                }))}
-                                value={donationFormData.donor_id}
-                                onValueChange={v => {
-                                  const selectedDonor = donors.find(d => d.id === v);
-                                  const isYearly = selectedDonor?.payment_frequency === "yearly";
-                                  const monthlyRate = selectedDonor?.monthly_sanda_amount || 0;
-                                  
-                                  // For yearly: auto-select all 12 months and set full amount
-                                  // For monthly: reset months and set amount to 0 initially
-                                  const newMonthsPaid = isYearly ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [];
-                                  const newAmount = isYearly ? monthlyRate : 0;
-                                  
-                                  setDonationFormData({ 
-                                    ...donationFormData, 
-                                    donor_id: v,
-                                    amount: newAmount.toString(),
-                                    months_paid: newMonthsPaid
-                                  });
-                                }}
-                                placeholder="Select Donor"
-                                searchPlaceholder="Search donor by card or name..."
-                              />
-                            </div>
-                            <div className="space-y-2"><Label htmlFor="amount">Amount (Rs.) *</Label><Input id="amount" type="number" value={donationFormData.amount} onChange={e => setDonationFormData({ ...donationFormData, amount: e.target.value })} required /></div>
-                            <div className="space-y-2"><Label htmlFor="date">Date *</Label><Input id="date" type="date" value={donationFormData.date} onChange={e => setDonationFormData({ ...donationFormData, date: e.target.value })} required /></div>
-                            <div className="space-y-2">
-                              <Label htmlFor="method">Method</Label>
-                              <SearchableSelect
-                                options={[
-                                  { value: "cash", label: "Cash" },
-                                  { value: "bank_transfer", label: "Bank Transfer" },
-                                  { value: "cheque", label: "Cheque" }
-                                ]}
-                                value={donationFormData.method}
-                                onValueChange={v => setDonationFormData({ ...donationFormData, method: v })}
-                                placeholder="Select method"
-                                searchPlaceholder="Search method..."
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="year">Year</Label>
-                              <SearchableSelect
-                                options={years.map(y => ({ value: y.toString(), label: y.toString() }))}
-                                value={donationFormData.year}
-                                onValueChange={v => setDonationFormData({ ...donationFormData, year: v })}
-                                placeholder="Select year"
-                                searchPlaceholder="Search year..."
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label>Months Paid</Label>
-                                {(() => {
-                                  const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
-                                  return selectedDonor?.payment_frequency === "yearly" ? (
-                                    <Badge variant="secondary" className="text-xs">Full Year Payment</Badge>
-                                  ) : null;
-                                })()}
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setAdminView("sanda-donors")}>
+                          <Users className="mr-2 h-4 w-4" />View Donors
+                        </Button>
+                        <Dialog open={donationDialogOpen} onOpenChange={(open) => { setDonationDialogOpen(open); if (!open) resetDonationForm(); }}>
+                          <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />Record Sanda</Button></DialogTrigger>
+                          <DialogContent className="max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>{editingDonation ? "Edit Donation" : "Record New Sanda"}</DialogTitle>
+                              <DialogDescription>Fill in the donation details below</DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={(e) => handleDonationSubmit(e, false)} className="space-y-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="donor_id">Donor *</Label>
+                                <SearchableSelect
+                                  options={donors.map(d => ({ 
+                                    value: d.id, 
+                                    label: `${d.card_number} - ${d.name}${d.payment_frequency === "yearly" ? " (Yearly)" : ""}` 
+                                  }))}
+                                  value={donationFormData.donor_id}
+                                  onValueChange={v => {
+                                    const selectedDonor = donors.find(d => d.id === v);
+                                    const isYearly = selectedDonor?.payment_frequency === "yearly";
+                                    const monthlyRate = selectedDonor?.monthly_sanda_amount || 0;
+                                    
+                                    const newMonthsPaid = isYearly ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [];
+                                    const newAmount = isYearly ? monthlyRate : 0;
+                                    
+                                    setDonationFormData({ 
+                                      ...donationFormData, 
+                                      donor_id: v,
+                                      amount: newAmount.toString(),
+                                      months_paid: newMonthsPaid
+                                    });
+                                  }}
+                                  placeholder="Select Donor"
+                                  searchPlaceholder="Search donor by card or name..."
+                                />
                               </div>
-                              <div className="grid grid-cols-4 gap-2">
-                                {monthNames.map((m, i) => {
-                                  const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
-                                  const isYearly = selectedDonor?.payment_frequency === "yearly";
-                                  return (
-                                    <Button 
-                                      key={i} 
-                                      type="button" 
-                                      variant={donationFormData.months_paid.includes(i + 1) ? "default" : "outline"} 
-                                      size="sm" 
-                                      onClick={() => !isYearly && toggleMonthPaid(i + 1)}
-                                      disabled={isYearly}
-                                      className={isYearly ? "opacity-80" : ""}
-                                    >
-                                      {m}
-                                    </Button>
-                                  );
-                                })}
+                              <div className="space-y-2"><Label htmlFor="amount">Amount (Rs.) *</Label><Input id="amount" type="number" value={donationFormData.amount} onChange={e => setDonationFormData({ ...donationFormData, amount: e.target.value })} required /></div>
+                              <div className="space-y-2"><Label htmlFor="date">Date *</Label><Input id="date" type="date" value={donationFormData.date} onChange={e => setDonationFormData({ ...donationFormData, date: e.target.value })} required /></div>
+                              <div className="space-y-2">
+                                <Label htmlFor="method">Method</Label>
+                                <SearchableSelect
+                                  options={[
+                                    { value: "cash", label: "Cash" },
+                                    { value: "bank_transfer", label: "Bank Transfer" },
+                                    { value: "cheque", label: "Cheque" }
+                                  ]}
+                                  value={donationFormData.method}
+                                  onValueChange={v => setDonationFormData({ ...donationFormData, method: v })}
+                                  placeholder="Select method"
+                                  searchPlaceholder="Search method..."
+                                />
                               </div>
-                              {donationFormData.donor_id && donationFormData.months_paid.length > 0 && (
-                                <p className="text-sm text-muted-foreground mt-2">
+                              <div className="space-y-2">
+                                <Label htmlFor="year">Year</Label>
+                                <SearchableSelect
+                                  options={years.map(y => ({ value: y.toString(), label: y.toString() }))}
+                                  value={donationFormData.year}
+                                  onValueChange={v => setDonationFormData({ ...donationFormData, year: v })}
+                                  placeholder="Select year"
+                                  searchPlaceholder="Search year..."
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label>Months Paid</Label>
                                   {(() => {
                                     const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
-                                    const rate = selectedDonor?.monthly_sanda_amount || 0;
-                                    const isYearly = selectedDonor?.payment_frequency === "yearly";
-                                    if (isYearly) {
-                                      return `Yearly payment: Rs. ${Number(rate).toLocaleString()}`;
-                                    }
-                                    return `Rs. ${Number(rate).toLocaleString()} × ${donationFormData.months_paid.length} month(s) = Rs. ${(Number(rate) * donationFormData.months_paid.length).toLocaleString()}`;
+                                    return selectedDonor?.payment_frequency === "yearly" ? (
+                                      <Badge variant="secondary" className="text-xs">Full Year Payment</Badge>
+                                    ) : null;
                                   })()}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex gap-2">
-                              <Button type="submit" className="flex-1">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
-                              {!editingDonation && (
-                                <Button 
-                                  type="button" 
-                                  variant="secondary" 
-                                  onClick={(e) => handleDonationSubmit(e, true)}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  Save & Receipt
-                                </Button>
-                              )}
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                  {monthNames.map((m, i) => {
+                                    const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+                                    const isYearly = selectedDonor?.payment_frequency === "yearly";
+                                    return (
+                                      <Button 
+                                        key={i} 
+                                        type="button" 
+                                        variant={donationFormData.months_paid.includes(i + 1) ? "default" : "outline"} 
+                                        size="sm" 
+                                        onClick={() => !isYearly && toggleMonthPaid(i + 1)}
+                                        disabled={isYearly}
+                                        className={isYearly ? "opacity-80" : ""}
+                                      >
+                                        {m}
+                                      </Button>
+                                    );
+                                  })}
+                                </div>
+                                {donationFormData.donor_id && donationFormData.months_paid.length > 0 && (
+                                  <p className="text-sm text-muted-foreground mt-2">
+                                    {(() => {
+                                      const selectedDonor = donors.find(d => d.id === donationFormData.donor_id);
+                                      const rate = selectedDonor?.monthly_sanda_amount || 0;
+                                      const isYearly = selectedDonor?.payment_frequency === "yearly";
+                                      if (isYearly) {
+                                        return `Yearly payment: Rs. ${Number(rate).toLocaleString()}`;
+                                      }
+                                      return `Rs. ${Number(rate).toLocaleString()} × ${donationFormData.months_paid.length} month(s) = Rs. ${(Number(rate) * donationFormData.months_paid.length).toLocaleString()}`;
+                                    })()}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button type="submit" className="flex-1">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
+                                {!editingDonation && (
+                                  <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    onClick={(e) => handleDonationSubmit(e, true)}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Save & Receipt
+                                  </Button>
+                                )}
+                              </div>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
 
                     <Card className="mb-4 shadow-card">
@@ -946,6 +982,26 @@ export default function Home() {
                       </CardContent>
                     </Card>
                   </>
+                )}
+
+                {/* Data Collection Module */}
+                {adminView === "data-collection" && (
+                  <div>
+                    <div className="mb-6 flex items-center gap-4">
+                      <Button variant="outline" size="icon" onClick={() => setAdminView("dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
+                    </div>
+                    <DataCollection />
+                  </div>
+                )}
+
+                {/* Baithul Zakat Module */}
+                {adminView === "baithul-zakat" && (
+                  <div>
+                    <div className="mb-6 flex items-center gap-4">
+                      <Button variant="outline" size="icon" onClick={() => setAdminView("dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
+                    </div>
+                    <BaithulZakat />
+                  </div>
                 )}
               </div>
             )}

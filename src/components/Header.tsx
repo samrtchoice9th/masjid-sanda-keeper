@@ -14,7 +14,7 @@ export function Header({ showAuth = false }: HeaderProps) {
           </div>
           <div className="min-w-0">
             <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">Ahsan Jumma Masjid</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">Masjid Sanda Register</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">Masjid Management</p>
           </div>
         </div>
       </div>
