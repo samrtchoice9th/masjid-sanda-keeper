@@ -44,6 +44,7 @@ export type Database = {
           created_at: string | null
           date: string
           donor_id: string
+          family_id: string | null
           id: string
           method: string
           months_paid: number[] | null
@@ -56,6 +57,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           donor_id: string
+          family_id?: string | null
           id?: string
           method: string
           months_paid?: number[] | null
@@ -68,6 +70,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           donor_id?: string
+          family_id?: string | null
           id?: string
           method?: string
           months_paid?: number[] | null
@@ -81,6 +84,13 @@ export type Database = {
             columns: ["donor_id"]
             isOneToOne: false
             referencedRelation: "donors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donations_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
@@ -134,34 +144,63 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          family_head_id: string | null
           family_name: string
           id: string
           notes: string | null
+          occupation: string | null
           phone: string | null
           root_no: string | null
+          sanda_amount: number | null
+          sanda_amount_type: string | null
+          sanda_card_number: string | null
           total_members: number | null
+          whatsapp_no: string | null
+          zakat_status: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
+          family_head_id?: string | null
           family_name: string
           id?: string
           notes?: string | null
+          occupation?: string | null
           phone?: string | null
           root_no?: string | null
+          sanda_amount?: number | null
+          sanda_amount_type?: string | null
+          sanda_card_number?: string | null
           total_members?: number | null
+          whatsapp_no?: string | null
+          zakat_status?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
+          family_head_id?: string | null
           family_name?: string
           id?: string
           notes?: string | null
+          occupation?: string | null
           phone?: string | null
           root_no?: string | null
+          sanda_amount?: number | null
+          sanda_amount_type?: string | null
+          sanda_card_number?: string | null
           total_members?: number | null
+          whatsapp_no?: string | null
+          zakat_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "families_family_head_id_fkey"
+            columns: ["family_head_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       family_members: {
         Row: {
@@ -275,6 +314,7 @@ export type Database = {
           created_at: string
           date: string
           donor_name: string | null
+          family_id: string | null
           id: string
           method: string | null
           notes: string | null
@@ -287,6 +327,7 @@ export type Database = {
           created_at?: string
           date?: string
           donor_name?: string | null
+          family_id?: string | null
           id?: string
           method?: string | null
           notes?: string | null
@@ -299,6 +340,7 @@ export type Database = {
           created_at?: string
           date?: string
           donor_name?: string | null
+          family_id?: string | null
           id?: string
           method?: string | null
           notes?: string | null
@@ -306,7 +348,15 @@ export type Database = {
           recipient_name?: string | null
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "zakat_transactions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

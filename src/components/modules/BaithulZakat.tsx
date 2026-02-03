@@ -21,12 +21,23 @@ interface ZakatTransaction {
   purpose: string | null;
   method: string | null;
   notes: string | null;
+  family_id: string | null;
   created_at: string;
+}
+
+interface Family {
+  id: string;
+  family_name: string;
+  address: string | null;
+  phone: string | null;
+  root_no: string | null;
+  zakat_status: string | null;
 }
 
 export function BaithulZakat() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<ZakatTransaction[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "collection" | "distribution">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,6 +52,7 @@ export function BaithulZakat() {
     purpose: "",
     method: "cash",
     notes: "",
+    family_id: "",
   });
 
   const [stats, setStats] = useState({
@@ -51,7 +63,21 @@ export function BaithulZakat() {
 
   useEffect(() => {
     loadTransactions();
+    loadFamilies();
   }, []);
+
+  const loadFamilies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("families")
+        .select("id, family_name, address, phone, root_no, zakat_status")
+        .order("family_name");
+      if (error) throw error;
+      setFamilies((data || []) as Family[]);
+    } catch (error: any) {
+      console.error("Error loading families:", error);
+    }
+  };
 
   const loadTransactions = async () => {
     try {
@@ -82,6 +108,18 @@ export function BaithulZakat() {
     }
   };
 
+  const handleFamilySelect = (familyId: string) => {
+    const selectedFamily = families.find(f => f.id === familyId);
+    if (selectedFamily) {
+      setFormData(prev => ({
+        ...prev,
+        family_id: familyId,
+        donor_name: prev.type === "collection" ? selectedFamily.family_name : prev.donor_name,
+        recipient_name: prev.type === "distribution" ? selectedFamily.family_name : prev.recipient_name,
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -94,6 +132,7 @@ export function BaithulZakat() {
         purpose: formData.purpose || null,
         method: formData.method,
         notes: formData.notes || null,
+        family_id: formData.family_id || null,
       };
 
       if (editing) {
@@ -127,6 +166,7 @@ export function BaithulZakat() {
       purpose: txn.purpose || "",
       method: txn.method || "cash",
       notes: txn.notes || "",
+      family_id: txn.family_id || "",
     });
     setDialogOpen(true);
   };
@@ -153,8 +193,20 @@ export function BaithulZakat() {
       purpose: "",
       method: "cash",
       notes: "",
+      family_id: "",
     });
     setEditing(null);
+  };
+
+  // Filter families by zakat status based on transaction type
+  const getFilteredFamilies = () => {
+    if (formData.type === "collection") {
+      // For collections, show families with "given" status (donors)
+      return families.filter(f => f.zakat_status === "given");
+    } else {
+      // For distributions, show families with "taker" status (recipients)
+      return families.filter(f => f.zakat_status === "taker");
+    }
   };
 
   const filteredTransactions = transactions.filter((t) => {
@@ -186,7 +238,7 @@ export function BaithulZakat() {
                   <Button
                     type="button"
                     variant={formData.type === "collection" ? "default" : "outline"}
-                    onClick={() => setFormData({ ...formData, type: "collection" })}
+                    onClick={() => setFormData({ ...formData, type: "collection", family_id: "", donor_name: "", recipient_name: "" })}
                     className="w-full"
                   >
                     <TrendingUp className="mr-2 h-4 w-4" />Collection
@@ -194,13 +246,48 @@ export function BaithulZakat() {
                   <Button
                     type="button"
                     variant={formData.type === "distribution" ? "default" : "outline"}
-                    onClick={() => setFormData({ ...formData, type: "distribution" })}
+                    onClick={() => setFormData({ ...formData, type: "distribution", family_id: "", donor_name: "", recipient_name: "" })}
                     className="w-full"
                   >
                     <TrendingDown className="mr-2 h-4 w-4" />Distribution
                   </Button>
                 </div>
               </div>
+
+              {/* Family Selection */}
+              <div className="space-y-2">
+                <Label>Select from Family (Optional)</Label>
+                <SearchableSelect
+                  options={getFilteredFamilies().map(f => ({ 
+                    value: f.id, 
+                    label: `${f.family_name}${f.root_no ? ` (${f.root_no})` : ""}` 
+                  }))}
+                  value={formData.family_id}
+                  onValueChange={handleFamilySelect}
+                  placeholder={formData.type === "collection" ? "Select Zakat Donor family..." : "Select Zakat Recipient family..."}
+                  searchPlaceholder="Search family..."
+                  emptyMessage={formData.type === "collection" 
+                    ? "No families with 'Zakat Given' status found" 
+                    : "No families with 'Zakat Taker' status found"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formData.type === "collection" 
+                    ? "Shows families marked as 'Zakat Given' in Data Collection" 
+                    : "Shows families marked as 'Zakat Taker' in Data Collection"}
+                </p>
+              </div>
+
+              {/* Show selected family details */}
+              {formData.family_id && (() => {
+                const selectedFamily = families.find(f => f.id === formData.family_id);
+                return selectedFamily && (
+                  <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
+                    <p><span className="text-muted-foreground">Root:</span> {selectedFamily.root_no || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Address:</span> {selectedFamily.address || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Phone:</span> {selectedFamily.phone || "N/A"}</p>
+                  </div>
+                );
+              })()}
 
               {formData.type === "collection" && (
                 <div className="space-y-2">
