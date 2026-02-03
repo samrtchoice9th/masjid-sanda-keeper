@@ -36,30 +36,32 @@ export function useDashboardStats(isAuthenticated: boolean) {
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
 
-      // Fetch Sanda stats
-      const [donorsResult, donationsResult] = await Promise.all([
-        supabase.from("donors").select("id", { count: "exact" }),
+      // Fetch Sanda stats - using families with sanda_card_number
+      const [familiesWithSandaResult, donationsResult] = await Promise.all([
+        supabase.from("families")
+          .select("id", { count: "exact" })
+          .not("sanda_card_number", "is", null),
         supabase.from("donations")
-          .select("donor_id, amount, months_paid")
+          .select("family_id, amount, months_paid")
           .eq("year", currentYear),
       ]);
 
-      const totalDonors = donorsResult.count || 0;
+      const totalSandaFamilies = familiesWithSandaResult.count || 0;
       const donations = donationsResult.data || [];
 
       // Calculate current month stats
       let monthlyTotal = 0;
-      const paidDonorIds = new Set<string>();
+      const paidFamilyIds = new Set<string>();
 
       donations.forEach(d => {
         if (d.months_paid && d.months_paid.includes(currentMonth)) {
           monthlyTotal += Number(d.amount) / (d.months_paid.length || 1);
-          paidDonorIds.add(d.donor_id);
+          if (d.family_id) paidFamilyIds.add(d.family_id);
         }
       });
 
-      const membersPaid = paidDonorIds.size;
-      const membersPending = totalDonors - membersPaid;
+      const membersPaid = paidFamilyIds.size;
+      const membersPending = totalSandaFamilies - membersPaid;
 
       // Fetch Data Collection stats
       const [familiesResult, membersResult] = await Promise.all([
