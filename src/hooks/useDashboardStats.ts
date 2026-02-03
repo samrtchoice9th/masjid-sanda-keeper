@@ -17,7 +17,7 @@ interface DashboardStats {
   zakatBalance: number;
 }
 
-export function useDashboardStats() {
+export function useDashboardStats(isAuthenticated: boolean) {
   const [stats, setStats] = useState<DashboardStats>({
     sandaMonthlyTotal: 0,
     sandaMembersPaid: 0,
@@ -105,8 +105,10 @@ export function useDashboardStats() {
   };
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    if (isAuthenticated) {
+      fetchStats();
+    }
+  }, [isAuthenticated]);
 
   return { stats, loading, refetch: fetchStats };
 }

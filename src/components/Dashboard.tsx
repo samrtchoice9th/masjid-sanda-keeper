@@ -2,11 +2,14 @@ import { Users, Home, Wallet, TrendingUp, TrendingDown, CheckCircle, Clock } fro
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
 
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export function Dashboard() {
-  const { stats, loading } = useDashboardStats();
+  const { user, isAdmin } = useAuth();
+  const isAuthenticated = !!user && isAdmin;
+  const { stats, loading } = useDashboardStats(isAuthenticated);
   const currentMonth = monthNames[new Date().getMonth()];
 
   if (loading) {
