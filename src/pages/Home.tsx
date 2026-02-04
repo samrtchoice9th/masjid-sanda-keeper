@@ -377,7 +377,7 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="public">Check Sanda</TabsTrigger>
+            <TabsTrigger value="public">Check Family Details</TabsTrigger>
             <TabsTrigger value="admin">Admin Panel</TabsTrigger>
           </TabsList>
 
@@ -385,13 +385,13 @@ export default function HomePage() {
           <TabsContent value="public">
             <div className="mx-auto max-w-2xl">
               <div className="mb-6 text-center">
-                <h2 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">Check Your Sanda</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">Select your root and card number to view your payment history</p>
+                <h2 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">Check Family Details</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Select your root and card number to view your family details and payment history</p>
               </div>
 
               <Card className="mb-6 shadow-card">
                 <CardHeader>
-                  <CardTitle className="text-lg">Lookup Sanda Record</CardTitle>
+                  <CardTitle className="text-lg">Lookup Family Record</CardTitle>
                   <CardDescription>Select your root number and card number below</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
