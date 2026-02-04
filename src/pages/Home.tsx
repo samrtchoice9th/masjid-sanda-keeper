@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download, Home, Wallet } from "lucide-react";
+import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download, Home, Wallet, MessageCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { generateSandaReceipt } from "@/utils/receiptGenerator";
+import { generateSandaReceipt, generateWhatsAppReceiptText, shareReceiptViaWhatsApp } from "@/utils/receiptGenerator";
 import { Dashboard } from "@/components/Dashboard";
 import { DataCollection } from "@/components/modules/DataCollection";
 import { BaithulZakat } from "@/components/modules/BaithulZakat";
@@ -309,6 +310,74 @@ export default function HomePage() {
     });
     
     toast({ title: "Success", description: "Receipt downloaded successfully" });
+  };
+
+  // Send receipt via WhatsApp
+  const handleWhatsAppReceipt = (donation: any) => {
+    const familyInfo = donation.families || families.find((f: Family) => f.id === donation.family_id);
+    if (!familyInfo) {
+      toast({ title: "Error", description: "Family information not found", variant: "destructive" });
+      return;
+    }
+    
+    const receiptText = generateWhatsAppReceiptText({
+      donorName: familyInfo.family_name,
+      cardNumber: familyInfo.sanda_card_number || "",
+      rootNo: familyInfo.root_no,
+      amount: Number(donation.amount),
+      date: donation.date,
+      method: donation.method,
+      year: donation.year,
+      monthsPaid: donation.months_paid || [],
+    });
+    
+    shareReceiptViaWhatsApp(familyInfo.whatsapp_no, receiptText);
+    toast({ title: "Opening WhatsApp", description: familyInfo.whatsapp_no ? "Sending to family's WhatsApp number" : "Please select a contact" });
+  };
+
+  // Handle Save & WhatsApp from form
+  const handleSaveAndWhatsApp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const submitData = {
+        family_id: donationFormData.family_id,
+        donor_id: donationFormData.family_id,
+        amount: parseFloat(donationFormData.amount),
+        date: donationFormData.date,
+        method: donationFormData.method,
+        year: parseInt(donationFormData.year),
+        months_paid: donationFormData.months_paid,
+      };
+      
+      const { error } = await supabase.from("donations").insert([submitData]);
+      if (error) throw error;
+      toast({ title: "Success", description: "Donation recorded successfully" });
+      
+      // Send via WhatsApp
+      const selectedFamily = families.find(f => f.id === donationFormData.family_id);
+      if (selectedFamily) {
+        const receiptText = generateWhatsAppReceiptText({
+          donorName: selectedFamily.family_name,
+          cardNumber: selectedFamily.sanda_card_number || "",
+          rootNo: selectedFamily.root_no,
+          amount: parseFloat(donationFormData.amount),
+          date: donationFormData.date,
+          method: donationFormData.method,
+          year: parseInt(donationFormData.year),
+          monthsPaid: donationFormData.months_paid,
+        });
+        
+        shareReceiptViaWhatsApp(selectedFamily.whatsapp_no, receiptText);
+      }
+      
+      setDonationDialogOpen(false);
+      resetDonationForm();
+      loadDonations();
+      loadRecentDonations();
+      loadStats();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
   };
 
   const handleEditDonation = (d: any) => {
@@ -792,18 +861,29 @@ export default function HomePage() {
                                 </p>
                               )}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button type="submit" className="flex-1">{editingDonation ? "Update Donation" : "Record Donation"}</Button>
                               {!editingDonation && (
-                                <Button 
-                                  type="button" 
-                                  variant="secondary" 
-                                  onClick={(e) => handleDonationSubmit(e, true)}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  Save & Receipt
-                                </Button>
+                                <>
+                                  <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    onClick={(e) => handleDonationSubmit(e, true)}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Save & Receipt
+                                  </Button>
+                                  <Button 
+                                    type="button" 
+                                    variant="outline"
+                                    onClick={handleSaveAndWhatsApp}
+                                    className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                                  >
+                                    <MessageCircle className="h-4 w-4" />
+                                    Save & WhatsApp
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </form>
@@ -840,7 +920,33 @@ export default function HomePage() {
                                 <div className="flex items-center gap-4">
                                   <p className="font-bold text-primary">Rs. {Number(d.amount).toLocaleString()}</p>
                                   <div className="flex gap-2">
-                                    <Button variant="outline" size="icon" onClick={() => handleDownloadReceipt(d)} title="Download Receipt"><Download className="h-4 w-4" /></Button>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button variant="outline" size="icon" onClick={() => handleDownloadReceipt(d)}>
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Download Receipt</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button 
+                                            variant="outline" 
+                                            size="icon" 
+                                            onClick={() => handleWhatsAppReceipt(d)}
+                                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                                          >
+                                            <MessageCircle className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          {d.families?.whatsapp_no ? "Send via WhatsApp" : "Send via WhatsApp (no number saved)"}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                     <Button variant="outline" size="icon" onClick={() => handleEditDonation(d)}><Edit className="h-4 w-4" /></Button>
                                     <Button variant="outline" size="icon" onClick={() => handleDeleteDonation(d.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                   </div>
