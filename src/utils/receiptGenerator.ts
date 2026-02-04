@@ -185,3 +185,46 @@ export const generateSandaReceipt = async (data: ReceiptData): Promise<void> => 
   const fileName = `Sanda_Receipt_${data.cardNumber}_${data.year}_${new Date().getTime()}.pdf`;
   doc.save(fileName);
 };
+
+// Generate WhatsApp-friendly text message for receipt
+export const generateWhatsAppReceiptText = (data: ReceiptData): string => {
+  const monthsText = data.monthsPaid.map(m => monthNames[m - 1]).join(", ");
+  
+  return `*MASJID AL-AHSAN*
+_Sanda Payment Receipt_
+
+*Donor:* ${data.donorName}
+*Card No:* ${data.cardNumber}
+${data.rootNo ? `*Root No:* ${data.rootNo}\n` : ''}*Year:* ${data.year}
+*Months Paid:* ${monthsText}
+*Amount:* Rs. ${data.amount.toLocaleString()}
+*Method:* ${data.method.charAt(0).toUpperCase() + data.method.slice(1).replace("_", " ")}
+*Date:* ${new Date(data.date).toLocaleDateString("en-GB")}
+
+_Thank you for your contribution._
+_May Allah bless you._`;
+};
+
+// Share receipt via WhatsApp
+export const shareReceiptViaWhatsApp = (
+  phoneNumber: string | undefined, 
+  receiptText: string
+): void => {
+  // Clean phone number (remove spaces, dashes, etc.)
+  const cleanPhone = phoneNumber?.replace(/[\s\-\(\)]/g, "") || "";
+  
+  // Encode message for URL
+  const encodedMessage = encodeURIComponent(receiptText);
+  
+  // Build WhatsApp URL
+  let whatsappUrl: string;
+  if (cleanPhone) {
+    whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+  } else {
+    // If no phone, open WhatsApp without specific recipient
+    whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+  }
+  
+  // Open WhatsApp
+  window.open(whatsappUrl, "_blank");
+};
