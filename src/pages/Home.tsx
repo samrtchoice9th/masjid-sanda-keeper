@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download, Home, Wallet, MessageCircle } from "lucide-react";
+import { FileText, Phone, CreditCard, CheckCircle, XCircle, LogOut, Users, DollarSign, TrendingUp, Plus, Edit, Trash2, Search, ArrowLeft, Download, Home, Wallet, MessageCircle, MapPin, Briefcase, HandHeart } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,8 @@ import { generateSandaReceipt, generateWhatsAppReceiptText, shareReceiptViaWhats
 import { Dashboard } from "@/components/Dashboard";
 import { DataCollection } from "@/components/modules/DataCollection";
 import { BaithulZakat } from "@/components/modules/BaithulZakat";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type AdminView = "dashboard" | "sanda-donations" | "data-collection" | "baithul-zakat";
 
@@ -54,6 +56,9 @@ export default function HomePage() {
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>([]);
   const [paidMonths, setPaidMonths] = useState<number[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [lookupFamilyMembers, setLookupFamilyMembers] = useState<any[]>([]);
+  const [lookupZakatTransactions, setLookupZakatTransactions] = useState<any[]>([]);
+  const [lookupDonationHistory, setLookupDonationHistory] = useState<any[]>([]);
 
   // Admin state
   const [adminView, setAdminView] = useState<AdminView>("dashboard");
@@ -125,13 +130,16 @@ export default function HomePage() {
 
   // Fetch paid months when year is selected
   useEffect(() => {
-    if (selectedYear && family) fetchPaidMonths();
+    if (selectedYear && family) fetchPaidMonthsForYear();
     else setPaidMonths([]);
   }, [selectedYear, family]);
 
   const handleCardSelection = async () => {
     setLookupLoading(true);
     setNotFound(false);
+    setLookupFamilyMembers([]);
+    setLookupZakatTransactions([]);
+    setLookupDonationHistory([]);
     try {
       const { data: familyData, error } = await supabase
         .from("families")
@@ -141,6 +149,17 @@ export default function HomePage() {
       if (error) throw error;
       if (!familyData) { setNotFound(true); return; }
       setFamily(familyData as Family);
+      
+      // Fetch additional data in parallel
+      const [membersResult, zakatResult, donationsResult] = await Promise.all([
+        supabase.from("family_members").select("*").eq("family_id", familyData.id).order("created_at"),
+        supabase.from("zakat_transactions").select("*").eq("family_id", familyData.id).order("date", { ascending: false }),
+        supabase.from("donations").select("*").eq("family_id", familyData.id).order("date", { ascending: false }),
+      ]);
+      
+      setLookupFamilyMembers(membersResult.data || []);
+      setLookupZakatTransactions(zakatResult.data || []);
+      setLookupDonationHistory(donationsResult.data || []);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -148,7 +167,7 @@ export default function HomePage() {
     }
   };
 
-  const fetchPaidMonths = async () => {
+  const fetchPaidMonthsForYear = async () => {
     if (!family || !selectedYear) return;
     try {
       const { data, error } = await supabase.from("donations").select("months_paid")
@@ -499,104 +518,276 @@ export default function HomePage() {
               )}
 
               {family && (
-                <>
-                  <Card className="mb-4 shadow-card">
-                    <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-                      <CardTitle className="text-lg">Family Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-2">
-                          <FileText className="h-4 w-4 text-primary mt-0.5" />
-                          <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium text-sm">{family.family_name}</p></div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <CreditCard className="h-4 w-4 text-primary mt-0.5" />
-                          <div><p className="text-xs text-muted-foreground">Card Number</p><p className="font-medium text-sm">{family.sanda_card_number}</p></div>
-                        </div>
-                        {family.phone && (
-                          <div className="flex items-start gap-2">
-                            <Phone className="h-4 w-4 text-primary mt-0.5" />
-                            <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium text-sm">{family.phone}</p></div>
+                <Card className="shadow-card">
+                  <CardContent className="p-0">
+                    <Accordion type="multiple" defaultValue={["family-info"]} className="w-full">
+                      {/* Section 1: Family Information */}
+                      <AccordionItem value="family-info" className="border-b">
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <span className="font-semibold">Family Information</span>
                           </div>
-                        )}
-                        <div className="flex items-start gap-2">
-                          <FileText className="h-4 w-4 text-primary mt-0.5" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              {family.sanda_amount_type === "yearly" ? "Yearly Sanda Amount" : "Monthly Sanda Amount"}
-                            </p>
-                            <p className="font-medium text-sm">Rs. {family.sanda_amount ? Number(family.sanda_amount).toLocaleString() : 'N/A'}</p>
-                            {family.sanda_amount_type === "yearly" && (
-                              <Badge variant="secondary" className="mt-1 text-xs">Yearly Payment</Badge>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                              <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium text-sm">{family.family_name}</p></div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <CreditCard className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                              <div><p className="text-xs text-muted-foreground">Card Number</p><p className="font-medium text-sm">{family.sanda_card_number}</p></div>
+                            </div>
+                            {family.root_no && (
+                              <div className="flex items-start gap-2">
+                                <Users className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                <div><p className="text-xs text-muted-foreground">Root No.</p><p className="font-medium text-sm">{family.root_no}</p></div>
+                              </div>
+                            )}
+                            {family.phone && (
+                              <div className="flex items-start gap-2">
+                                <Phone className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium text-sm">{family.phone}</p></div>
+                              </div>
+                            )}
+                            {family.whatsapp_no && (
+                              <div className="flex items-start gap-2">
+                                <MessageCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                <div><p className="text-xs text-muted-foreground">WhatsApp</p><p className="font-medium text-sm">{family.whatsapp_no}</p></div>
+                              </div>
+                            )}
+                            {family.address && (
+                              <div className="flex items-start gap-2 sm:col-span-2">
+                                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                <div><p className="text-xs text-muted-foreground">Address</p><p className="font-medium text-sm">{family.address}</p></div>
+                              </div>
+                            )}
+                            {family.zakat_status && family.zakat_status !== "none" && (
+                              <div className="flex items-start gap-2">
+                                <HandHeart className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Zakat Status</p>
+                                  <Badge variant={family.zakat_status === "given" ? "default" : "secondary"} className="mt-0.5">
+                                    {family.zakat_status === "given" ? "Zakat Giver" : family.zakat_status === "taker" ? "Zakat Taker" : family.zakat_status}
+                                  </Badge>
+                                </div>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                  <Card className="mb-4 shadow-card">
-                    <CardHeader><CardTitle className="text-lg">Select Year</CardTitle></CardHeader>
-                    <CardContent>
-                      <SearchableSelect
-                        options={years.map(y => ({ value: y.toString(), label: y.toString() }))}
-                        value={selectedYear}
-                        onValueChange={setSelectedYear}
-                        placeholder="Select Year"
-                        searchPlaceholder="Search year..."
-                      />
-                    </CardContent>
-                  </Card>
-
-                  {selectedYear && (
-                    <>
-                      <Card className="mb-4 shadow-card">
-                        <CardHeader className="bg-gradient-to-r from-green-500/10 to-green-500/5">
-                          <CardTitle className="flex items-center gap-2 text-base">
-                            <CheckCircle className="h-4 w-4 text-green-600" />Paid Months ({selectedYear})
-                          </CardTitle>
-                          <CardDescription>{paidMonths.length} month(s) paid</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                          {paidMonths.length === 0 ? (
-                            <p className="text-center text-sm text-muted-foreground">No payments recorded for this year</p>
+                      {/* Section 2: Family Members */}
+                      <AccordionItem value="family-members" className="border-b">
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-blue-500" />
+                            <span className="font-semibold">Family Members</span>
+                            <Badge variant="outline" className="ml-2">{lookupFamilyMembers.length}</Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          {lookupFamilyMembers.length === 0 ? (
+                            <p className="text-center text-sm text-muted-foreground py-4">No family members recorded</p>
                           ) : (
-                            <div className="grid grid-cols-3 gap-2">
-                              {paidMonths.map(m => (
-                                <div key={m} className="rounded-lg border border-green-200 bg-green-50 p-2 text-center dark:border-green-900 dark:bg-green-950">
-                                  <p className="font-medium text-sm text-green-700 dark:text-green-300">{monthNames[m - 1]}</p>
-                                </div>
-                              ))}
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">Name</TableHead>
+                                    <TableHead className="text-xs">Relation</TableHead>
+                                    <TableHead className="text-xs">Gender</TableHead>
+                                    <TableHead className="text-xs">Age</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {lookupFamilyMembers.map((member) => (
+                                    <TableRow key={member.id}>
+                                      <TableCell className="text-sm font-medium">{member.name}</TableCell>
+                                      <TableCell className="text-sm">{member.relationship || "-"}</TableCell>
+                                      <TableCell className="text-sm">{member.gender || "-"}</TableCell>
+                                      <TableCell className="text-sm">{member.age || "-"}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                      <Card className="shadow-card">
-                        <CardHeader className="bg-gradient-to-r from-red-500/10 to-red-500/5">
-                          <CardTitle className="flex items-center gap-2 text-base">
-                            <XCircle className="h-4 w-4 text-red-600" />Unpaid Months ({selectedYear})
-                          </CardTitle>
-                          <CardDescription>{unpaidMonths.length} month(s) unpaid</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                          {unpaidMonths.length === 0 ? (
-                            <p className="text-center text-sm text-green-600">All months paid!</p>
-                          ) : (
-                            <div className="grid grid-cols-3 gap-2">
-                              {unpaidMonths.map(m => (
-                                <div key={m} className="rounded-lg border border-red-200 bg-red-50 p-2 text-center dark:border-red-900 dark:bg-red-950">
-                                  <p className="font-medium text-sm text-red-700 dark:text-red-300">{monthNames[m - 1]}</p>
+                      {/* Section 3: Sanda Payment Details */}
+                      <AccordionItem value="sanda-details" className="border-b">
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                          <div className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4 text-primary" />
+                            <span className="font-semibold">Sanda Payment Details</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          <div className="space-y-4">
+                            <div className="flex flex-wrap gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Payment Type</p>
+                                <Badge variant="outline" className="mt-1">
+                                  {family.sanda_amount_type === "yearly" ? "Yearly" : "Monthly"}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">
+                                  {family.sanda_amount_type === "yearly" ? "Yearly Amount" : "Monthly Amount"}
+                                </p>
+                                <p className="font-semibold text-sm">Rs. {family.sanda_amount ? Number(family.sanda_amount).toLocaleString() : 'N/A'}</p>
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-2 block">Select Year to View Payments</Label>
+                              <SearchableSelect
+                                options={years.map(y => ({ value: y.toString(), label: y.toString() }))}
+                                value={selectedYear}
+                                onValueChange={setSelectedYear}
+                                placeholder="Select Year"
+                                searchPlaceholder="Search year..."
+                              />
+                            </div>
+
+                            {selectedYear && (
+                              <div className="space-y-4">
+                                {/* Paid Months */}
+                                <div className="rounded-lg border border-green-200 bg-green-50/50 p-3 dark:border-green-900 dark:bg-green-950/50">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <span className="text-sm font-medium text-green-700 dark:text-green-300">Paid Months ({paidMonths.length})</span>
+                                  </div>
+                                  {paidMonths.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No payments recorded for {selectedYear}</p>
+                                  ) : (
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                                      {paidMonths.map(m => (
+                                        <div key={m} className="rounded border border-green-300 bg-green-100 p-1.5 text-center dark:border-green-800 dark:bg-green-900">
+                                          <p className="text-xs font-medium text-green-700 dark:text-green-300">{monthNames[m - 1]}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
-                              ))}
+
+                                {/* Unpaid Months */}
+                                <div className="rounded-lg border border-red-200 bg-red-50/50 p-3 dark:border-red-900 dark:bg-red-950/50">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                    <span className="text-sm font-medium text-red-700 dark:text-red-300">Unpaid Months ({unpaidMonths.length})</span>
+                                  </div>
+                                  {unpaidMonths.length === 0 ? (
+                                    <p className="text-sm text-green-600">All months paid!</p>
+                                  ) : (
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                                      {unpaidMonths.map(m => (
+                                        <div key={m} className="rounded border border-red-300 bg-red-100 p-1.5 text-center dark:border-red-800 dark:bg-red-900">
+                                          <p className="text-xs font-medium text-red-700 dark:text-red-300">{monthNames[m - 1]}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Total Paid Summary */}
+                                {paidMonths.length > 0 && (
+                                  <div className="rounded-lg bg-muted/50 p-3">
+                                    <p className="text-xs text-muted-foreground">Total Paid ({selectedYear})</p>
+                                    <p className="text-lg font-bold text-primary">
+                                      Rs. {family.sanda_amount_type === "yearly" 
+                                        ? Number(family.sanda_amount || 0).toLocaleString()
+                                        : (Number(family.sanda_amount || 0) * paidMonths.length).toLocaleString()
+                                      }
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Section 4: Baithul Zakat History */}
+                      <AccordionItem value="zakat-history">
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                          <div className="flex items-center gap-2">
+                            <HandHeart className="h-4 w-4 text-emerald-500" />
+                            <span className="font-semibold">Baithul Zakat History</span>
+                            {lookupZakatTransactions.length > 0 && (
+                              <Badge variant="outline" className="ml-2">{lookupZakatTransactions.length}</Badge>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          {lookupZakatTransactions.length === 0 ? (
+                            <p className="text-center text-sm text-muted-foreground py-4">No zakat transactions recorded for this family</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {/* Zakat Summary */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/50">
+                                  <p className="text-xs text-muted-foreground">Total Given</p>
+                                  <p className="text-lg font-bold text-emerald-600">
+                                    Rs. {lookupZakatTransactions
+                                      .filter(t => t.type === "collection")
+                                      .reduce((sum, t) => sum + Number(t.amount), 0)
+                                      .toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950/50">
+                                  <p className="text-xs text-muted-foreground">Total Received</p>
+                                  <p className="text-lg font-bold text-blue-600">
+                                    Rs. {lookupZakatTransactions
+                                      .filter(t => t.type === "distribution")
+                                      .reduce((sum, t) => sum + Number(t.amount), 0)
+                                      .toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Transaction List */}
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2">Recent Transactions</p>
+                                <div className="space-y-2">
+                                  {lookupZakatTransactions.slice(0, 5).map((t) => (
+                                    <div key={t.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                          t.type === "collection" 
+                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" 
+                                            : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                        }`}>
+                                          {t.type === "collection" ? "+" : "-"}
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium">
+                                            {t.type === "collection" ? "Given" : "Received"}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {new Date(t.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <p className={`font-semibold ${
+                                        t.type === "collection" ? "text-emerald-600" : "text-blue-600"
+                                      }`}>
+                                        Rs. {Number(t.amount).toLocaleString()}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
-                </>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </TabsContent>
